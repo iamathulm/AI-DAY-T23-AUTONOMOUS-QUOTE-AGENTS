@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# ML artifacts
+ML/models/*.pkl
+ML/models/*.joblib
+*.pkl
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+.env
+
+# Node
+Frontend/node_modules/
+Frontend/.next/
+Frontend/out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

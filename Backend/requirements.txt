@@ -1,0 +1,28 @@
+# Core
+fastapi
+uvicorn[standard]
+pydantic>=2.0
+
+# LangGraph + LangChain
+langgraph
+langchain
+langchain-groq
+
+# ML
+pandas
+scikit-learn
+imbalanced-learn
+catboost
+lightgbm
+shap
+joblib
+numpy
+
+# Explainability
+dice-ml
+lime
+alibi
+
+# Utilities
+python-dotenv
+httpx
