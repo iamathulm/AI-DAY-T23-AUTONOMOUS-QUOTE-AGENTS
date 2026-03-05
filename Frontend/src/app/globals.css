@@ -120,9 +120,19 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image: none;
+  }
+
+  .square-grid-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
     background-image:
-      radial-gradient(circle at 14% 9%, rgba(255, 255, 255, 0.05), transparent 32%),
-      radial-gradient(circle at 82% 88%, rgba(180, 140, 255, 0.06), transparent 28%);
+      linear-gradient(rgba(255, 255, 255, 0.08) 3px, transparent 3px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.08) 3px, transparent 3px);
+    background-size: 26px 26px;
+    background-position: -1px -1px;
+    opacity: 0.5;
   }
 
   /* Stronger card separation for readability on dark shell */

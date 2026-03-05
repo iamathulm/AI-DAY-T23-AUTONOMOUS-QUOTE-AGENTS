@@ -17,28 +17,38 @@
 .viewportShell {
   position: relative;
   z-index: 2;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 1rem 0 1.15rem;
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  padding: 1rem 0 3.2rem;
+  overflow: hidden;
 }
 
-.dotField {
+.viewportShell::after {
+  content: "";
   position: absolute;
-  inset: -8% -6% -10%;
-  opacity: 0.36;
-  transform: rotate(-3deg) scale(1.05);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 7.5rem;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(6, 6, 6, 0), rgba(6, 6, 6, 0.96) 62%, #060606);
+  z-index: 2;
+}
+
+.squareMatrix {
+  position: absolute;
+  inset: 0;
+  opacity: 0.68;
 }
 
 .grain {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 0.7px, transparent 0.7px);
-  background-size: 3px 3px;
+  background: linear-gradient(180deg, rgba(5, 8, 12, 0.12), rgba(5, 8, 12, 0.72));
   mix-blend-mode: normal;
-  opacity: 0.2;
+  opacity: 0.42;
 }
 
 .glowTop,
@@ -84,7 +94,10 @@
 }
 
 .scrollCue {
-  margin: 0.75rem auto 0;
+  position: absolute;
+  left: 50%;
+  bottom: 0.9rem;
+  transform: translateX(-50%);
   width: fit-content;
   display: inline-flex;
   align-items: center;
@@ -98,6 +111,7 @@
   font-size: 0.75rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  z-index: 4;
 }
 
 .scrollCue strong {
@@ -107,6 +121,7 @@
 }
 
 .scrollCue:hover {
+  transform: translateX(-50%);
   border-color: rgba(59, 130, 246, 0.65);
   background: rgba(59, 130, 246, 0.12);
 }
@@ -114,7 +129,7 @@
 .details {
   position: relative;
   z-index: 2;
-  padding: 0 0 2rem;
+  padding: 1.6rem 0 2rem;
 }
 
 .detailsFrame {
@@ -553,8 +568,14 @@
 
 @media (max-width: 760px) {
   .viewportShell {
-    justify-content: flex-start;
+    min-height: auto;
+    display: block;
     padding-top: 0.8rem;
+    padding-bottom: 1rem;
+  }
+
+  .viewportShell::after {
+    display: none;
   }
 
   .frame {
@@ -565,6 +586,16 @@
 
   .detailsFrame {
     width: min(96vw, 38rem);
+  }
+
+  .scrollCue {
+    position: static;
+    transform: none;
+    margin: 0.75rem auto 0;
+  }
+
+  .scrollCue:hover {
+    transform: none;
   }
 
   .topbar {

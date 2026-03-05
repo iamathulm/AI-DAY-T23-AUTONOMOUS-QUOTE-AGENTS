@@ -1,5 +1,4 @@
 import Link from "next/link";
-import DotGrid from "@/components/landing/dot-grid";
 import styles from "./page.module.css";
 
 const agentFlow = [
@@ -43,19 +42,7 @@ const explainabilityStack = [
 export default function Home() {
   return (
     <main className={styles.landing}>
-      <div className={styles.dotField}>
-        <DotGrid
-          dotSize={4}
-          gap={18}
-          baseColor="#23262B"
-          activeColor="#3B82F6"
-          proximity={140}
-          shockRadius={220}
-          shockStrength={4}
-          resistance={720}
-          returnDuration={1.5}
-        />
-      </div>
+      <div className={`square-grid-bg ${styles.squareMatrix}`} />
 
       <div className={styles.grain} />
       <div className={styles.glowTop} />
