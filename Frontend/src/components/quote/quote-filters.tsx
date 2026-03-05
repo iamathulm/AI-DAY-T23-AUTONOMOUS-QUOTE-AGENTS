@@ -32,7 +32,7 @@ export function QuoteFilters({
         value={riskFilter}
         onValueChange={(v) => onRiskChange(v as RiskTier | "ALL")}
       >
-        <SelectTrigger size="sm" className="w-36">
+        <SelectTrigger size="sm" className="w-36 border-sky-500/35 bg-sky-500/10 text-sky-200">
           <SelectValue placeholder="Risk Tier" />
         </SelectTrigger>
         <SelectContent>
@@ -47,7 +47,7 @@ export function QuoteFilters({
         value={decisionFilter}
         onValueChange={(v) => onDecisionChange(v as Decision | "ALL")}
       >
-        <SelectTrigger size="sm" className="w-44">
+        <SelectTrigger size="sm" className="w-44 border-violet-500/35 bg-violet-500/10 text-violet-200">
           <SelectValue placeholder="Decision" />
         </SelectTrigger>
         <SelectContent>
@@ -59,7 +59,7 @@ export function QuoteFilters({
       </Select>
 
       <Select value={regionFilter} onValueChange={onRegionChange}>
-        <SelectTrigger size="sm" className="w-36">
+        <SelectTrigger size="sm" className="w-36 border-amber-500/35 bg-amber-500/10 text-amber-200">
           <SelectValue placeholder="Region" />
         </SelectTrigger>
         <SelectContent>

@@ -29,10 +29,10 @@ function BindScoreBar({ score }: { score: number }) {
           className={cn(
             "h-full rounded-full transition-all",
             score >= 75
-              ? "bg-[var(--risk-low)]"
+              ? "bg-emerald-400"
               : score >= 40
-                ? "bg-[var(--risk-medium)]"
-                : "bg-[var(--risk-high)]"
+                ? "bg-yellow-400"
+                : "bg-red-500"
           )}
           style={{ width: `${score}%` }}
         />
@@ -208,8 +208,8 @@ export function QuoteTable({ quotes }: { quotes: QuoteResult[] }) {
                     className={cn(
                       "rounded px-1.5 py-0.5 text-[11px] font-semibold",
                       quote.agent_type === "EA"
-                        ? "bg-primary/10 text-primary"
-                        : "bg-[var(--decision-followup)]/10 text-[var(--decision-followup)]"
+                        ? "border border-emerald-500/35 bg-emerald-500/15 text-emerald-300"
+                        : "border border-violet-500/35 bg-violet-500/15 text-violet-300"
                     )}
                   >
                     {quote.agent_type}

@@ -188,12 +188,16 @@ function EscalationCard({
           size="sm"
           variant="outline"
           onClick={() => onResolve(quote.quote_num)}
-          className="gap-1.5"
+          className="gap-1.5 border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
         >
           <CheckCircle2 className="size-3.5" />
           Mark Resolved
         </Button>
-        <Button size="sm" variant="ghost" className="gap-1.5">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="gap-1.5 border border-sky-500/35 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20"
+        >
           <UserCheck className="size-3.5" />
           Assign Underwriter
         </Button>

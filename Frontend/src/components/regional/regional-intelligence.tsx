@@ -207,10 +207,14 @@ export function RegionalIntelligence() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs text-primary">
-                    {r.ea_bind_rate}%
+                    <span className="rounded border border-sky-500/35 bg-sky-500/15 px-1.5 py-0.5 text-sky-300">
+                      {r.ea_bind_rate}%
+                    </span>
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs text-[var(--decision-followup)]">
-                    {r.ia_bind_rate}%
+                    <span className="rounded border border-violet-500/35 bg-violet-500/15 px-1.5 py-0.5 text-violet-300">
+                      {r.ia_bind_rate}%
+                    </span>
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs">
                     {r.avg_bind_score}
@@ -228,7 +232,7 @@ export function RegionalIntelligence() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary">
+                    <span className="rounded border border-amber-500/35 bg-amber-500/15 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-amber-300">
                       {r.dynamic_threshold}
                     </span>
                   </TableCell>

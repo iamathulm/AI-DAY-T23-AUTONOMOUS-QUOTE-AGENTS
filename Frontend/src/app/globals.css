@@ -102,16 +102,16 @@
   --sidebar-ring: #ffffff;
 
   /* ─── Semantic status tokens ─── */
-  --risk-low: #d4d4d4;
-  --risk-medium: #a3a3a3;
-  --risk-high: #ff4d6d;
+  --risk-low: #22c55e;
+  --risk-medium: #eab308;
+  --risk-high: #ef4444;
 
-  --decision-approve: #d4d4d4;
-  --decision-followup: #b48cff;
-  --decision-escalate: #ff4d6d;
+  --decision-approve: #3b82f6;
+  --decision-followup: #8b5cf6;
+  --decision-escalate: #ef4444;
 
-  --premium-acceptable: #d4d4d4;
-  --premium-blocker: #ff4d6d;
+  --premium-acceptable: #22c55e;
+  --premium-blocker: #ef4444;
 }
 
 @layer base {

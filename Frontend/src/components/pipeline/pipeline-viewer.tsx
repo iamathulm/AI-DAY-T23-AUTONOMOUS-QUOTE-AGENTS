@@ -34,6 +34,12 @@ const STEPS: PipelineStepDef[] = [
   { id: "premium", name: "Premium Advisor", subtitle: "Agent 3 — LLM Hybrid", icon: DollarSign },
   { id: "router", name: "Decision Router", subtitle: "Agent 4 — Threshold Logic", icon: GitBranch },
 ];
+const STEP_ACCENT: Record<string, string> = {
+  risk: "#22C55E",
+  conversion: "#3B82F6",
+  premium: "#EAB308",
+  router: "#8B5CF6",
+};
 
 function StepStatusIcon({ status }: { status: StepStatus }) {
   switch (status) {
@@ -74,6 +80,7 @@ function StepCard({
 }) {
   const Icon = step.icon;
   const isActive = status === "complete" || status === "processing";
+  const accent = STEP_ACCENT[step.id] ?? "#3B82F6";
 
   return (
     <div
@@ -91,14 +98,16 @@ function StepCard({
         <div
           className={cn(
             "flex size-8 items-center justify-center rounded",
-            isActive ? "bg-primary/15" : "bg-muted/30"
+            isActive ? "bg-white/8" : "bg-muted/30"
           )}
+          style={isActive ? { boxShadow: `inset 0 0 0 1px ${accent}66` } : undefined}
         >
           <Icon
             className={cn(
               "size-4",
-              isActive ? "text-primary" : "text-muted-foreground/50"
+              isActive ? "text-foreground" : "text-muted-foreground/50"
             )}
+            style={isActive ? { color: accent } : undefined}
           />
         </div>
         <div className="flex-1">
@@ -224,23 +233,39 @@ export function PipelineViewer({ quote }: { quote: QuoteResult | null }) {
       <div className="flex items-center gap-0">
         {STEPS.map((step, i) => (
           <div key={step.id} className="flex items-center">
+            {(() => {
+              const accent = STEP_ACCENT[step.id] ?? "#3B82F6";
+              return (
             <div
               className={cn(
                 "flex items-center gap-2 rounded-md border px-3 py-1.5",
                 statuses[step.id] === "complete"
-                  ? "border-primary/30 bg-primary/5"
+                  ? "bg-white/6"
                   : statuses[step.id] === "skipped"
                     ? "border-border/50 bg-muted/20"
                     : "border-border/30 bg-transparent"
               )}
+              style={
+                statuses[step.id] === "complete"
+                  ? {
+                      borderColor: `${accent}70`,
+                      boxShadow: `inset 0 0 0 1px ${accent}22`,
+                    }
+                  : undefined
+              }
             >
               <step.icon
                 className={cn(
                   "size-3.5",
                   statuses[step.id] === "complete"
-                    ? "text-primary"
+                    ? "text-foreground"
                     : "text-muted-foreground/40"
                 )}
+                style={
+                  statuses[step.id] === "complete"
+                    ? { color: accent }
+                    : undefined
+                }
               />
               <span
                 className={cn(
@@ -254,6 +279,8 @@ export function PipelineViewer({ quote }: { quote: QuoteResult | null }) {
               </span>
               <StepStatusIcon status={statuses[step.id]} />
             </div>
+              );
+            })()}
             {i < STEPS.length - 1 && (
               <ArrowRight
                 className={cn(
