@@ -1,0 +1,198 @@
+.landing {
+  --ink: #f4f2ee;
+  --deep: #090c1d;
+  --midnight: #131a31;
+  --accent: #da7e2a;
+  --signal: #4edec7;
+  --edge: rgba(255, 255, 255, 0.14);
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 7% 10%, rgba(218, 126, 42, 0.32), transparent 46%),
+    radial-gradient(circle at 88% 20%, rgba(78, 222, 199, 0.22), transparent 43%),
+    linear-gradient(125deg, var(--deep), var(--midnight));
+  color: var(--ink);
+}
+
+.dotField {
+  position: absolute;
+  inset: -10% -10% 0;
+  height: 120%;
+  width: 120%;
+  transform: rotate(-4deg) scale(1.05);
+  opacity: 0.62;
+}
+
+.veil {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(1.8px);
+  background: linear-gradient(
+    180deg,
+    rgba(9, 12, 29, 0.24) 0%,
+    rgba(9, 12, 29, 0.68) 76%,
+    rgba(9, 12, 29, 0.9) 100%
+  );
+}
+
+.orbOne,
+.orbTwo {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(42px);
+  animation: drift 10s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.orbOne {
+  width: 20rem;
+  height: 20rem;
+  top: 8%;
+  left: -3rem;
+  background: radial-gradient(circle, rgba(218, 126, 42, 0.45), transparent 70%);
+}
+
+.orbTwo {
+  width: 24rem;
+  height: 24rem;
+  bottom: -4rem;
+  right: -4rem;
+  animation-duration: 12s;
+  background: radial-gradient(circle, rgba(78, 222, 199, 0.35), transparent 72%);
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  width: min(72rem, 92vw);
+  border: 1px solid var(--edge);
+  border-radius: 2rem;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)),
+    rgba(6, 8, 18, 0.66);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  padding: clamp(2rem, 5vw, 4.5rem);
+  transform: translateY(0.75rem);
+  animation: settle 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.kicker {
+  margin: 0;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(244, 242, 238, 0.82);
+  font-size: clamp(0.66rem, 1vw, 0.82rem);
+}
+
+.title {
+  margin: 0.6rem 0 1rem;
+  font-family: var(--font-instrument-serif), Georgia, serif;
+  font-size: clamp(2.2rem, 7vw, 5.6rem);
+  line-height: 0.96;
+  letter-spacing: 0.02em;
+  max-width: 16ch;
+  text-wrap: balance;
+}
+
+.subtitle {
+  margin: 0;
+  max-width: 62ch;
+  color: rgba(244, 242, 238, 0.78);
+  line-height: 1.58;
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+}
+
+.actions {
+  margin-top: 1.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.primaryAction,
+.secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.primaryAction {
+  padding: 0.78rem 1.4rem;
+  color: #111827;
+  background: linear-gradient(130deg, var(--accent), #f2b870);
+  box-shadow: 0 12px 26px rgba(218, 126, 42, 0.34);
+}
+
+.secondaryAction {
+  padding: 0.78rem 1.4rem;
+  color: rgba(244, 242, 238, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.primaryAction:hover,
+.secondaryAction:hover {
+  transform: translateY(-1px);
+}
+
+.primaryAction:hover {
+  box-shadow: 0 18px 30px rgba(218, 126, 42, 0.42);
+}
+
+.secondaryAction:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.credit {
+  margin: 2.2rem 0 0;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(78, 222, 199, 0.9);
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(1.5rem, -1.2rem, 0) scale(1.07);
+  }
+}
+
+@media (max-width: 768px) {
+  .dotField {
+    inset: -8% -22% 0;
+    transform: rotate(-2deg) scale(1.03);
+    opacity: 0.5;
+  }
+
+  .content {
+    border-radius: 1.4rem;
+  }
+
+  .actions {
+    gap: 0.65rem;
+  }
+}
