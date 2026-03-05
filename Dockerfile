@@ -20,4 +20,4 @@ COPY . .
 EXPOSE 8000
 
 # Railway injects $PORT; default to 8000 for local Docker
-CMD uvicorn Backend.api.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["sh", "-c", "uvicorn Backend.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
