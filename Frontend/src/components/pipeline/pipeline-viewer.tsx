@@ -30,7 +30,7 @@ interface PipelineStepDef {
 
 const STEPS: PipelineStepDef[] = [
   { id: "risk", name: "Risk Profiler", subtitle: "Agent 1 — CatBoost", icon: Shield },
-  { id: "conversion", name: "Conversion Predictor", subtitle: "Agent 2 — LightGBM", icon: TrendingUp },
+  { id: "conversion", name: "Conversion Predictor", subtitle: "Agent 2 — CatBoost", icon: TrendingUp },
   { id: "premium", name: "Premium Advisor", subtitle: "Agent 3 — LLM Hybrid", icon: DollarSign },
   { id: "router", name: "Decision Router", subtitle: "Agent 4 — Threshold Logic", icon: GitBranch },
 ];
@@ -61,10 +61,15 @@ function StepStatusIcon({ status }: { status: StepStatus }) {
 
 function getStepStatuses(quote: QuoteResult | null): Record<string, StepStatus> {
   if (!quote) return { risk: "pending", conversion: "pending", premium: "pending", router: "pending" };
+
+  const premiumSkipped =
+    (quote.adjusted_band ?? "") === "N/A" ||
+    (quote.premium_reasoning ?? "").toLowerCase().includes("skipped");
+
   return {
     risk: "complete",
     conversion: "complete",
-    premium: quote.premium_flag ? "complete" : "skipped",
+    premium: premiumSkipped ? "skipped" : quote.premium_flag ? "complete" : "skipped",
     router: "complete",
   };
 }
@@ -184,7 +189,7 @@ function StepCard({
             {quote.premium_reasoning && (
               <div className="animated-border rounded-xl border border-border/90 bg-muted/20 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  LLM Reasoning
+                  Reasoning
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-foreground/80">
                   {quote.premium_reasoning}
@@ -201,7 +206,7 @@ function StepCard({
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Case Summary
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-foreground/80">
+              <p className="mt-1 max-h-72 overflow-y-auto whitespace-pre-line font-mono text-[11px] leading-relaxed text-foreground/80">
                 {quote.case_summary}
               </p>
             </div>

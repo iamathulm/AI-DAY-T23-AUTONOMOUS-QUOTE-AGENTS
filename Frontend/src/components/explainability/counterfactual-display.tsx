@@ -10,6 +10,22 @@ export function CounterfactualDisplay({
   counterfactuals: CounterfactualExplanation[];
   title: string;
 }) {
+  if (!counterfactuals || counterfactuals.length === 0) {
+    return (
+      <div className="space-y-2.5">
+        <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </h4>
+        <div className="rounded border border-border bg-muted/20 px-3 py-2">
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            No DiCE counterfactuals found for this quote. This can happen when no small, valid feature
+            changes satisfy the target class constraints.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2.5">
       <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">

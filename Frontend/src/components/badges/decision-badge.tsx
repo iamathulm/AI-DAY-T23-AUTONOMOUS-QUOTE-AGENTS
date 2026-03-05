@@ -1,8 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-
-type Decision = "AUTO_APPROVE" | "AGENT_FOLLOWUP" | "ESCALATE_UNDERWRITER";
+import type { Decision } from "@/lib/types";
 
 const decisionConfig: Record<Decision, { label: string; className: string }> = {
   AUTO_APPROVE: {

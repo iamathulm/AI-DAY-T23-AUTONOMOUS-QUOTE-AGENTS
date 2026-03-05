@@ -1,6 +1,7 @@
 "use client";
 
-import { MOCK_REGIONAL } from "@/lib/mock-data";
+import { useSyncExternalStore } from "react";
+import type { RegionalStats } from "@/lib/types";
 import {
   Card,
   CardContent,
@@ -28,7 +29,17 @@ import {
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
-const OVERALL_BIND_RATE = 22.4;
+// Computed dynamically from region data; falls back to 22.4 if no data
+function getOverallBindRate(regions: RegionalStats[]): number {
+  if (!regions.length) return 22.4;
+  const totalQuotes = regions.reduce((s, r) => s + r.total_quotes, 0);
+  if (totalQuotes === 0) return 22.4;
+  const weightedRate = regions.reduce(
+    (s, r) => s + r.bind_rate * r.total_quotes,
+    0,
+  );
+  return Number((weightedRate / totalQuotes).toFixed(1));
+}
 
 function CustomTooltip({
   active,
@@ -54,8 +65,8 @@ function CustomTooltip({
   );
 }
 
-function TrendIcon({ rate }: { rate: number }) {
-  const diff = rate - OVERALL_BIND_RATE;
+function TrendIcon({ rate, overallRate }: { rate: number; overallRate: number }) {
+  const diff = rate - overallRate;
   if (diff > 1)
     return <TrendingUp className="size-3.5 text-[var(--risk-low)]" />;
   if (diff < -1)
@@ -66,11 +77,13 @@ function TrendIcon({ rate }: { rate: number }) {
 function InsightCard({
   region,
   bindRate,
+  overallRate,
 }: {
   region: string;
   bindRate: number;
+  overallRate: number;
 }) {
-  const diff = bindRate - OVERALL_BIND_RATE;
+  const diff = bindRate - overallRate;
   const isAbove = diff > 0;
 
   return (
@@ -83,7 +96,7 @@ function InsightCard({
       )}
     >
       <div className="flex items-center gap-2">
-        <TrendIcon rate={bindRate} />
+        <TrendIcon rate={bindRate} overallRate={overallRate} />
         <span className="text-xs font-semibold text-foreground">{region}</span>
       </div>
       <p className="mt-1 text-[11px] text-muted-foreground">
@@ -97,14 +110,20 @@ function InsightCard({
           {isAbove ? "+" : ""}
           {diff.toFixed(1)}%
         </span>{" "}
-        vs {OVERALL_BIND_RATE}% overall
+        vs {overallRate}% overall
       </p>
     </div>
   );
 }
 
-export function RegionalIntelligence() {
-  const regions = MOCK_REGIONAL;
+export function RegionalIntelligence({ regions }: { regions: RegionalStats[] }) {
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+
+  const overallRate = getOverallBindRate(regions);
 
   const eaIaData = regions.map((r) => ({
     region: r.region,
@@ -117,7 +136,7 @@ export function RegionalIntelligence() {
       {/* Insight cards */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {regions.map((r) => (
-          <InsightCard key={r.region} region={r.region} bindRate={r.bind_rate} />
+          <InsightCard key={r.region} region={r.region} bindRate={r.bind_rate} overallRate={overallRate} />
         ))}
       </div>
 
@@ -128,48 +147,52 @@ export function RegionalIntelligence() {
         </CardHeader>
         <CardContent>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={eaIaData} barGap={4}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
-                <XAxis
-                  dataKey="region"
-                  tick={{ fontSize: 11, fill: "#D4D4D4" }}
-                  axisLine={{ stroke: "#2A2A2A" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: "#A3A3A3" }}
-                  axisLine={{ stroke: "#2A2A2A" }}
-                  tickLine={false}
-                  domain={[0, 35]}
-                  tickFormatter={(v) => `${v}%`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  verticalAlign="top"
-                  align="right"
-                  iconType="circle"
-                  iconSize={8}
-                  formatter={(value) => (
-                    <span className="text-[11px] text-muted-foreground">{value}</span>
-                  )}
-                />
-                <Bar
-                  dataKey="EA"
-                  name="Exclusive Agent"
-                  fill="#E5E5E5"
-                  radius={[2, 2, 0, 0]}
-                  fillOpacity={0.8}
-                />
-                <Bar
-                  dataKey="IA"
-                  name="Independent Agent"
-                  fill="#B48CFF"
-                  radius={[2, 2, 0, 0]}
-                  fillOpacity={0.8}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={eaIaData} barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
+                  <XAxis
+                    dataKey="region"
+                    tick={{ fontSize: 11, fill: "#D4D4D4" }}
+                    axisLine={{ stroke: "#2A2A2A" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "#A3A3A3" }}
+                    axisLine={{ stroke: "#2A2A2A" }}
+                    tickLine={false}
+                    domain={[0, 35]}
+                    tickFormatter={(v) => `${v}%`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend
+                    verticalAlign="top"
+                    align="right"
+                    iconType="circle"
+                    iconSize={8}
+                    formatter={(value) => (
+                      <span className="text-[11px] text-muted-foreground">{value}</span>
+                    )}
+                  />
+                  <Bar
+                    dataKey="EA"
+                    name="Exclusive Agent"
+                    fill="#E5E5E5"
+                    radius={[2, 2, 0, 0]}
+                    fillOpacity={0.8}
+                  />
+                  <Bar
+                    dataKey="IA"
+                    name="Independent Agent"
+                    fill="#B48CFF"
+                    radius={[2, 2, 0, 0]}
+                    fillOpacity={0.8}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full rounded border border-border/60 bg-muted/10" />
+            )}
           </div>
         </CardContent>
       </Card>
@@ -202,7 +225,7 @@ export function RegionalIntelligence() {
                   </TableCell>
                   <TableCell className="text-right">
                     <span className="inline-flex items-center gap-1.5">
-                      <TrendIcon rate={r.bind_rate} />
+                      <TrendIcon rate={r.bind_rate} overallRate={overallRate} />
                       <span className="font-mono text-xs">{r.bind_rate}%</span>
                     </span>
                   </TableCell>

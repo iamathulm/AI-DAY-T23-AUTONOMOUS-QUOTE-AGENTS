@@ -61,6 +61,7 @@ export interface QuoteResult {
   decision: Decision;
   case_summary: string;
   confidence: number;
+  routing_reasoning: string | null;
 }
 
 export interface PipelineStep {

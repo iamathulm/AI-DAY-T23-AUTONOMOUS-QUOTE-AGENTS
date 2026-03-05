@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import type { RiskTier, Decision } from "@/lib/types";
+import { useState, useMemo, useEffect } from "react";
+import type { QuoteResult, RiskTier, Decision } from "@/lib/types";
 import { MOCK_QUOTES } from "@/lib/mock-data";
+import { fetchQuotes } from "@/lib/api";
 import { QuoteTable } from "@/components/quote/quote-table";
 import { QuoteFilters } from "@/components/quote/quote-filters";
+import { EmptyState } from "@/components/layout/empty-state";
 import { Activity, CheckCircle, AlertTriangle, ArrowUpRight } from "lucide-react";
 
 function StatCard({
@@ -35,21 +37,40 @@ function StatCard({
 }
 
 export default function QuotesPage() {
+  const [quotes, setQuotes] = useState<QuoteResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchFailed, setFetchFailed] = useState(false);
   const [riskFilter, setRiskFilter] = useState<RiskTier | "ALL">("ALL");
   const [decisionFilter, setDecisionFilter] = useState<Decision | "ALL">("ALL");
   const [regionFilter, setRegionFilter] = useState("ALL");
 
+  useEffect(() => {
+    fetchQuotes({ limit: 500 })
+      .then(({ quotes: q }) => { if (q.length > 0) setQuotes(q); })
+      .catch(() => setFetchFailed(true))
+      .finally(() => setLoading(false));
+  }, []);
+
   const filtered = useMemo(() => {
-    return MOCK_QUOTES.filter((q) => {
+    return quotes.filter((q) => {
       if (riskFilter !== "ALL" && q.risk_tier !== riskFilter) return false;
       if (decisionFilter !== "ALL" && q.decision !== decisionFilter) return false;
       if (regionFilter !== "ALL" && q.region !== regionFilter) return false;
       return true;
     });
-  }, [riskFilter, decisionFilter, regionFilter]);
+  }, [quotes, riskFilter, decisionFilter, regionFilter]);
 
-  const approvedCount = MOCK_QUOTES.filter((q) => q.decision === "AUTO_APPROVE").length;
-  const escalatedCount = MOCK_QUOTES.filter((q) => q.decision === "ESCALATE_UNDERWRITER").length;
+  const approvedCount = quotes.filter((q) => q.decision === "AUTO_APPROVE").length;
+  const escalatedCount = quotes.filter((q) => q.decision === "ESCALATE_UNDERWRITER").length;
+
+  function loadSample() {
+    setQuotes(MOCK_QUOTES);
+    setFetchFailed(false);
+  }
+
+  if (!loading && fetchFailed && quotes.length === 0) {
+    return <EmptyState onLoadSample={loadSample} />;
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -57,7 +78,7 @@ export default function QuotesPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           label="Total Processed"
-          value={String(MOCK_QUOTES.length)}
+          value={String(quotes.length)}
           icon={Activity}
           accent="var(--primary)"
         />
@@ -76,9 +97,9 @@ export default function QuotesPage() {
         <StatCard
           label="Avg Bind Score"
           value={
-            (
-              MOCK_QUOTES.reduce((s, q) => s + q.bind_score, 0) / MOCK_QUOTES.length
-            ).toFixed(0)
+            quotes.length
+              ? (quotes.reduce((s, q) => s + q.bind_score, 0) / quotes.length).toFixed(0)
+              : "0"
           }
           icon={ArrowUpRight}
           accent="var(--decision-followup)"
@@ -96,7 +117,7 @@ export default function QuotesPage() {
           onRegionChange={setRegionFilter}
         />
         <p className="text-[11px] text-muted-foreground">
-          {filtered.length} of {MOCK_QUOTES.length} quotes
+          {filtered.length} of {quotes.length} quotes
         </p>
       </div>
 

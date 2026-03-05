@@ -1,6 +1,7 @@
 "use client";
 
-import { MOCK_STATS } from "@/lib/mock-data";
+import { useSyncExternalStore } from "react";
+import type { StatsOverview } from "@/lib/types";
 import {
   Card,
   CardContent,
@@ -107,8 +108,12 @@ function CustomTooltip({
   );
 }
 
-export function AnalyticsDashboard() {
-  const stats = MOCK_STATS;
+export function AnalyticsDashboard({ stats }: { stats: StatsOverview }) {
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const riskData = stats.risk_distribution.map((r) => ({
     name: r.tier,
@@ -163,38 +168,42 @@ export function AnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.bind_score_histogram}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
-                  <XAxis
-                    dataKey="range"
-                    tick={{ fontSize: 10, fill: "#A3A3A3" }}
-                    axisLine={{ stroke: "#2A2A2A" }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "#A3A3A3" }}
-                    axisLine={{ stroke: "#2A2A2A" }}
-                    tickLine={false}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar
-                    dataKey="count"
-                    name="Quotes"
-                    fill="#3B82F6"
-                    radius={[2, 2, 0, 0]}
-                    fillOpacity={0.95}
-                    activeBar={false}
-                  >
-                    {stats.bind_score_histogram.map((entry, index) => (
-                      <Cell
-                        key={entry.range}
-                        fill={HISTOGRAM_COLORS[index % HISTOGRAM_COLORS.length]}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {isMounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.bind_score_histogram}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
+                    <XAxis
+                      dataKey="range"
+                      tick={{ fontSize: 10, fill: "#A3A3A3" }}
+                      axisLine={{ stroke: "#2A2A2A" }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "#A3A3A3" }}
+                      axisLine={{ stroke: "#2A2A2A" }}
+                      tickLine={false}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar
+                      dataKey="count"
+                      name="Quotes"
+                      fill="#3B82F6"
+                      radius={[2, 2, 0, 0]}
+                      fillOpacity={0.95}
+                      activeBar={false}
+                    >
+                      {stats.bind_score_histogram.map((entry, index) => (
+                        <Cell
+                          key={entry.range}
+                          fill={HISTOGRAM_COLORS[index % HISTOGRAM_COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full rounded border border-border/60 bg-muted/10" />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -206,37 +215,41 @@ export function AnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={riskData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {riskData.map((entry) => (
-                      <Cell
-                        key={entry.name}
-                        fill={RISK_COLORS[entry.name]}
-                        fillOpacity={1}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend
-                    verticalAlign="bottom"
-                    iconType="circle"
-                    iconSize={8}
-                    formatter={(value) => (
-                      <span className="text-[11px] text-muted-foreground">{value}</span>
-                    )}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {isMounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={riskData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {riskData.map((entry) => (
+                        <Cell
+                          key={entry.name}
+                          fill={RISK_COLORS[entry.name]}
+                          fillOpacity={1}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend
+                      verticalAlign="bottom"
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value) => (
+                        <span className="text-[11px] text-muted-foreground">{value}</span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full rounded border border-border/60 bg-muted/10" />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -249,35 +262,39 @@ export function AnalyticsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="h-52">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={decisionData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" horizontal={false} />
-                <XAxis
-                  type="number"
-                  tick={{ fontSize: 10, fill: "#A3A3A3" }}
-                  axisLine={{ stroke: "#2A2A2A" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  tick={{ fontSize: 11, fill: "#D4D4D4" }}
-                  axisLine={{ stroke: "#2A2A2A" }}
-                  tickLine={false}
-                  width={100}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value" name="Quotes" radius={[0, 3, 3, 0]}>
-                  {decisionData.map((entry) => (
-                    <Cell
-                      key={entry.key}
-                      fill={DECISION_COLORS[entry.key]}
-                      fillOpacity={0.95}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={decisionData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 10, fill: "#A3A3A3" }}
+                    axisLine={{ stroke: "#2A2A2A" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: "#D4D4D4" }}
+                    axisLine={{ stroke: "#2A2A2A" }}
+                    tickLine={false}
+                    width={100}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" name="Quotes" radius={[0, 3, 3, 0]}>
+                    {decisionData.map((entry) => (
+                      <Cell
+                        key={entry.key}
+                        fill={DECISION_COLORS[entry.key]}
+                        fillOpacity={0.95}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full rounded border border-border/60 bg-muted/10" />
+            )}
           </div>
         </CardContent>
       </Card>

@@ -20,18 +20,18 @@ class QuoteState(TypedDict, total=False):
     # --- Agent 1: Risk Profiler ---
     risk_tier: str  # LOW | MEDIUM | HIGH
     risk_score: float
-    risk_shap: dict  # top 3 SHAP feature contributions
-    risk_lime: dict  # LIME local explanation
-    risk_anchors: str  # Anchor IF-THEN rule
-    risk_counterfactuals: list  # DiCE counterfactual examples
+    risk_shap: dict  # top SHAP features {name: value}
+    risk_lime: dict  # LIME weights {feature_condition: weight}
+    risk_anchors: dict  # {rule: str, precision: float, coverage: float}
+    risk_counterfactuals: list  # DiCE counterfactual dicts
 
     # --- Agent 2: Conversion Predictor ---
     bind_score: int  # 0-100
     bind_probability: float
-    bind_shap: dict
-    bind_lime: dict
-    bind_anchors: str
-    bind_counterfactuals: list
+    bind_shap: dict  # top SHAP features {name: value}
+    bind_lime: dict  # LIME weights {feature_condition: weight}
+    bind_anchors: dict  # {rule: str, precision: float, coverage: float}
+    bind_counterfactuals: list  # DiCE counterfactual dicts
     urgency_days: int  # days until quote expiry
 
     # --- Agent 3: Premium Advisor (conditional) ---
@@ -41,5 +41,7 @@ class QuoteState(TypedDict, total=False):
 
     # --- Agent 4: Decision Router ---
     decision: str  # AUTO_APPROVE | AGENT_FOLLOWUP | ESCALATE_UNDERWRITER
+    routing_reasoning: str  # LLM explanation for routing decision
     case_summary: str
+    auto_approve_threshold: int
     confidence: float

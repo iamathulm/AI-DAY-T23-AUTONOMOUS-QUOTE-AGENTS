@@ -1,8 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-
-type PremiumFlag = "ACCEPTABLE" | "BLOCKER";
+import type { PremiumFlag } from "@/lib/types";
 
 const premiumConfig: Record<PremiumFlag, { label: string; className: string }> = {
   ACCEPTABLE: {

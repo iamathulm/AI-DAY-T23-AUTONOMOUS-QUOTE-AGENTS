@@ -6,8 +6,10 @@ import asyncio
 import json
 import logging
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -73,19 +75,29 @@ def _quote_to_state(q: QuoteInput) -> QuoteState:
     )
 
 
+def _serialize_value(v: Any) -> Any:
+    """Recursively convert a value to a JSON-safe Python type."""
+    if v is None or isinstance(v, (bool, str)):
+        return v
+    if isinstance(v, (np.integer,)):
+        return int(v)
+    if isinstance(v, (np.floating,)):
+        return float(v)
+    if isinstance(v, (int, float)):
+        return v
+    if isinstance(v, np.ndarray):
+        return v.tolist()
+    if isinstance(v, dict):
+        return {str(k): _serialize_value(vv) for k, vv in v.items()}
+    if isinstance(v, (list, tuple)):
+        return [_serialize_value(item) for item in v]
+    return str(v)
+
+
 def _serialize_result(result: dict) -> dict:
-    """Ensure result is JSON-serializable."""
-    out = {}
-    for k, v in result.items():
-        if isinstance(v, (str, int, float, bool, type(None))):
-            out[k] = v
-        elif isinstance(v, dict):
-            out[k] = {
-                str(kk): (float(vv) if isinstance(vv, (int, float)) else str(vv))
-                for kk, vv in v.items()
-            }
-        else:
-            out[k] = str(v)
+    """Ensure result is JSON-serializable, including nested lists/dicts."""
+    out = {k: _serialize_value(v) for k, v in result.items()}
+    out.setdefault("timestamp", datetime.utcnow().isoformat() + "Z")
     return out
 
 
@@ -166,15 +178,23 @@ async def get_quotes(
 
 @router.get("/stats")
 async def get_stats():
-    """Aggregate statistics across all processed quotes."""
+    """Aggregate statistics matching the frontend StatsOverview interface."""
     if not processed_quotes:
-        return {"total": 0, "message": "No quotes processed yet"}
+        return {
+            "total_quotes": 0,
+            "bind_rate": 0,
+            "auto_approve_pct": 0,
+            "agent_followup_pct": 0,
+            "escalation_pct": 0,
+            "risk_distribution": [],
+            "decision_distribution": [],
+            "bind_score_histogram": [],
+        }
 
     total = len(processed_quotes)
-    decisions = {}
-    risk_tiers = {}
-    bind_scores = []
-    regions = {}
+    decisions: dict[str, int] = {}
+    risk_tiers: dict[str, int] = {}
+    bind_scores: list[int] = []
 
     for q in processed_quotes:
         d = q.get("decision", "UNKNOWN")
@@ -187,16 +207,93 @@ async def get_stats():
         if bs is not None:
             bind_scores.append(int(bs))
 
-        reg = q.get("region", "UNKNOWN")
-        regions[reg] = regions.get(reg, 0) + 1
+    auto_approve = decisions.get("AUTO_APPROVE", 0)
+    followup = decisions.get("AGENT_FOLLOWUP", 0)
+    escalate = decisions.get("ESCALATE_UNDERWRITER", 0)
+
+    # Bind rate: % of quotes with bind_score >= 50
+    bound = sum(1 for s in bind_scores if s >= 50)
+    bind_rate = round(bound / total * 100, 1) if total else 0
+
+    # Histogram (0-10, 11-20, … 91-100)
+    ranges = [
+        "0-10", "11-20", "21-30", "31-40", "41-50",
+        "51-60", "61-70", "71-80", "81-90", "91-100",
+    ]
+    histogram = {r: 0 for r in ranges}
+    for s in bind_scores:
+        idx = min(max(0, (s - 1) // 10), 9)
+        if s == 0:
+            idx = 0
+        histogram[ranges[idx]] += 1
 
     return {
-        "total": total,
-        "decisions": decisions,
-        "risk_tiers": risk_tiers,
-        "avg_bind_score": round(sum(bind_scores) / len(bind_scores), 1) if bind_scores else 0,
-        "regions": regions,
+        "total_quotes": total,
+        "bind_rate": bind_rate,
+        "auto_approve_pct": round(auto_approve / total * 100, 1),
+        "agent_followup_pct": round(followup / total * 100, 1),
+        "escalation_pct": round(escalate / total * 100, 1),
+        "risk_distribution": [
+            {"tier": tier, "count": count}
+            for tier, count in risk_tiers.items()
+            if tier in ("LOW", "MEDIUM", "HIGH")
+        ],
+        "decision_distribution": [
+            {"decision": d, "count": c}
+            for d, c in decisions.items()
+        ],
+        "bind_score_histogram": [
+            {"range": r, "count": histogram[r]} for r in ranges
+        ],
     }
+
+
+@router.get("/regional-stats")
+async def get_regional_stats():
+    """Per-region performance, bind rates (EA vs IA), and dynamic thresholds."""
+    if not processed_quotes:
+        return {"regions": []}
+
+    regions_data: dict[str, dict] = {}
+    for q in processed_quotes:
+        reg = q.get("region", "UNKNOWN")
+        if reg not in regions_data:
+            regions_data[reg] = {"ea_scores": [], "ia_scores": [], "escalated": 0, "total": 0}
+        rd = regions_data[reg]
+        rd["total"] += 1
+        bs = int(q.get("bind_score", 0))
+        at = q.get("agent_type", q.get("raw_features", {}).get("Agent_Type", "EA"))
+        if at == "EA":
+            rd["ea_scores"].append(bs)
+        else:
+            rd["ia_scores"].append(bs)
+        if q.get("decision") == "ESCALATE_UNDERWRITER":
+            rd["escalated"] += 1
+
+    result = []
+    for reg, rd in regions_data.items():
+        total = rd["total"]
+        all_scores = rd["ea_scores"] + rd["ia_scores"]
+        avg_score = round(sum(all_scores) / len(all_scores), 1) if all_scores else 0
+        bound = sum(1 for s in all_scores if s >= 50)
+        bind_rate = round(bound / total * 100, 1) if total else 0
+        ea_bound = sum(1 for s in rd["ea_scores"] if s >= 50)
+        ea_rate = round(ea_bound / len(rd["ea_scores"]) * 100, 1) if rd["ea_scores"] else 0
+        ia_bound = sum(1 for s in rd["ia_scores"] if s >= 50)
+        ia_rate = round(ia_bound / len(rd["ia_scores"]) * 100, 1) if rd["ia_scores"] else 0
+        esc_rate = round(rd["escalated"] / total * 100, 1) if total else 0
+        dynamic = max(50, min(90, 70 + int((avg_score - 50) * 0.4)))
+        result.append({
+            "region": reg,
+            "total_quotes": total,
+            "bind_rate": bind_rate,
+            "ea_bind_rate": ea_rate,
+            "ia_bind_rate": ia_rate,
+            "avg_bind_score": avg_score,
+            "escalation_rate": esc_rate,
+            "dynamic_threshold": dynamic,
+        })
+    return {"regions": result}
 
 
 @router.get("/sample-quotes")
@@ -212,5 +309,6 @@ async def sample_quotes(n: int = Query(10, ge=1, le=100)):
         raise HTTPException(status_code=404, detail="Dataset not found")
 
     df = pd.read_csv(csv_path).sample(n=n, random_state=None)
-    quotes = df.to_dict(orient="records")
+    raw_quotes = df.to_dict(orient="records")
+    quotes = [_serialize_value(q) for q in raw_quotes]
     return {"count": len(quotes), "quotes": quotes}

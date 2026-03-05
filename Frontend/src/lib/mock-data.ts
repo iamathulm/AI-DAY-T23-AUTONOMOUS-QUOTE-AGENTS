@@ -54,6 +54,7 @@ export const MOCK_QUOTES: QuoteResult[] = [
     decision: "AUTO_APPROVE",
     case_summary: "Low-risk profile with strong conversion signals. Premium is competitively positioned. Recommended for automatic approval.",
     confidence: 0.91,
+    routing_reasoning: null,
   },
   {
     quote_num: "Q-20250305-0002",
@@ -108,6 +109,7 @@ export const MOCK_QUOTES: QuoteResult[] = [
     decision: "ESCALATE_UNDERWRITER",
     case_summary: "High-risk young driver with accident history. Re-quote indicates price sensitivity. Premium is disproportionate to salary range. Requires underwriter assessment for potential manual rate adjustment.",
     confidence: 0.58,
+    routing_reasoning: null,
   },
   {
     quote_num: "Q-20250305-0003",
@@ -162,6 +164,7 @@ export const MOCK_QUOTES: QuoteResult[] = [
     decision: "AGENT_FOLLOWUP",
     case_summary: "Medium-risk experienced driver with moderate conversion potential. Basic coverage suggests price-sensitive buyer. Agent follow-up recommended to explore coverage options.",
     confidence: 0.72,
+    routing_reasoning: null,
   },
   {
     quote_num: "Q-20250305-0004",
@@ -216,6 +219,7 @@ export const MOCK_QUOTES: QuoteResult[] = [
     decision: "AUTO_APPROVE",
     case_summary: "Clean driving record, strong income bracket, competitive premium. All signals green for automatic binding.",
     confidence: 0.94,
+    routing_reasoning: null,
   },
   {
     quote_num: "Q-20250305-0005",
@@ -270,6 +274,7 @@ export const MOCK_QUOTES: QuoteResult[] = [
     decision: "AGENT_FOLLOWUP",
     case_summary: "Medium risk re-quote with declining conversion signals. Premium may be straining affordability. Agent outreach recommended to discuss coverage downgrade options.",
     confidence: 0.68,
+    routing_reasoning: null,
   },
   {
     quote_num: "Q-20250305-0006",
@@ -324,6 +329,7 @@ export const MOCK_QUOTES: QuoteResult[] = [
     decision: "ESCALATE_UNDERWRITER",
     case_summary: "Very young driver with significant citation history. High risk tier with low conversion probability. Premium significantly exceeds salary bracket capacity. Manual underwriter review required for risk acceptance decision.",
     confidence: 0.42,
+    routing_reasoning: null,
   },
 ];
 

@@ -87,7 +87,7 @@ function QuoteExpandedRow({ quote }: { quote: QuoteResult }) {
         <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Case Summary
         </h4>
-        <p className="text-xs leading-relaxed text-foreground/80">
+        <p className="max-h-64 overflow-y-auto whitespace-pre-line font-mono text-[11px] leading-relaxed text-foreground/80">
           {quote.case_summary}
         </p>
       </div>
@@ -150,7 +150,7 @@ function QuoteExpandedRow({ quote }: { quote: QuoteResult }) {
                 )}
               </div>
               <div className="animated-border rounded-xl border border-border/90 bg-muted/20 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                <p className="text-xs leading-relaxed text-foreground/80">
+                <p className="whitespace-pre-line text-xs leading-relaxed text-foreground/80">
                   {quote.premium_reasoning}
                 </p>
               </div>

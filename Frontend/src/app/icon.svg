@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#0a0a0a"/>
+  <g fill="none" stroke-width="1.5" stroke-linecap="round">
+    <!-- 4 agent nodes in a diamond -->
+    <circle cx="16" cy="6" r="3" fill="#22C55E" stroke="#22C55E" opacity="0.9"/>
+    <circle cx="26" cy="16" r="3" fill="#3B82F6" stroke="#3B82F6" opacity="0.9"/>
+    <circle cx="16" cy="26" r="3" fill="#EAB308" stroke="#EAB308" opacity="0.9"/>
+    <circle cx="6" cy="16" r="3" fill="#8B5CF6" stroke="#8B5CF6" opacity="0.9"/>
+    <!-- Connecting lines -->
+    <line x1="18.5" y1="7.5" x2="24" y2="14" stroke="rgba(255,255,255,0.25)"/>
+    <line x1="24" y1="18" x2="18.5" y2="24.5" stroke="rgba(255,255,255,0.25)"/>
+    <line x1="13.5" y1="24.5" x2="8" y2="18" stroke="rgba(255,255,255,0.25)"/>
+    <line x1="8" y1="14" x2="13.5" y2="7.5" stroke="rgba(255,255,255,0.25)"/>
+    <!-- Center hub -->
+    <circle cx="16" cy="16" r="2" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)"/>
+  </g>
+</svg>

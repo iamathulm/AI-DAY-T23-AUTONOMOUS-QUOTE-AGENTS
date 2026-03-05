@@ -1,8 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-
-type RiskTier = "LOW" | "MEDIUM" | "HIGH";
+import type { RiskTier } from "@/lib/types";
 
 const riskConfig: Record<RiskTier, { label: string; className: string }> = {
   LOW: {
