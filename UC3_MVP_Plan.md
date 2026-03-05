@@ -13,16 +13,16 @@ The goal is to build a 4-agent pipeline that autonomously handles the full quote
 
 ## 2. Dataset Overview
 
-Single CSV file. Key columns and their agent mappings:
+Single CSV file (~146K rows). Key columns and their agent mappings:
 
 | Column | Type | Used By Agent | Notes |
 |---|---|---|---|
 | Quote_Num | ID | All agents | Unique quote identifier |
-| Agent_Type | Categorical (EA/IA) | A2, A4 | Exclusive vs Independent agent |
+| Agent_Type | Categorical (EA/IA) | A2, A4, Bonus | Exclusive vs Independent agent |
 | Q_Creation_DT | Date | A2 | Quote creation timestamp |
 | Q_Valid_DT | Date | A2 | Quote expiry — urgency signal |
 | Policy_Bind_DT | Date | Target derivation | Null if not bound |
-| Region | Categorical | A2, A4 | Geographic signal |
+| Region | Categorical | A2, A4, Bonus | Geographic signal |
 | HH_Vehicles / HH_Drivers | Numeric | A1 | Household complexity |
 | Driver_Age / Driving_Exp | Numeric | A1 | Risk signals |
 | Prev_Accidents / Prev_Citations | Numeric | A1 | Core risk features |
@@ -30,7 +30,7 @@ Single CSV file. Key columns and their agent mappings:
 | Quoted_Premium | Numeric | A3 | Key pricing input |
 | Policy_Bind | Binary Yes/No | Target variable | 22% positive class |
 
-> **Class imbalance:** ~22% bind rate (Policy_Bind = Yes). Must be handled explicitly in Agent 2 using SMOTE or `class_weight` in the model.
+> **Class imbalance:** ~22% bind rate (Policy_Bind = Yes). Handled explicitly in Agent 2 using SMOTE oversampling on the training set only.
 
 ---
 
@@ -44,12 +44,17 @@ The pipeline is a sequential LangGraph `StateGraph` where each agent node receiv
 
 | Property | Detail |
 |---|---|
-| Input Features | Prev_Accidents, Prev_Citations, Driving_Exp, Driver_Age, Veh_Usage, Annual_Miles |
+| Input Features | Prev_Accidents, Prev_Citations, Driving_Exp, Driver_Age, HH_Vehicles, HH_Drivers, Annual_Miles_Range, Veh_Usage |
 | Output | `risk_tier`: LOW / MEDIUM / HIGH |
-| Model | XGBoost Classifier (3-class) |
-| Explainability | SHAP TreeExplainer — top 3 feature contributions per quote |
-| Training Note | No class imbalance issue — 3 tiers engineered from data distribution |
-| LangGraph Role | First node in StateGraph, enriches state with risk_tier + shap_values |
+| Model | **CatBoost Classifier (3-class)** — native categorical support, no manual encoding needed |
+| Why CatBoost | Published results showing CatBoost outperforms XGBoost/LightGBM on insurance data ([paper](https://arxiv.org/html/2307.07771v3)). Handles categoricals natively via ordered target encoding. |
+| Explainability | **4 methods**: SHAP TreeExplainer, LIME, Anchor rules, DiCE counterfactuals |
+| Training Note | No class imbalance issue — 3 tiers engineered from data distribution using actuarial signals |
+| LangGraph Role | First node in StateGraph, enriches state with risk_tier + multi-explainability outputs |
+
+**Risk Tier Engineering** (no ground-truth label exists):
+- Composite risk score from: Prev_Accidents (weight 30), Prev_Citations (20), Driver_Age brackets, Driving_Exp brackets, Annual_Miles_Range, Veh_Usage
+- Binned into LOW (bottom 50%), MEDIUM (50-85%), HIGH (top 15%) by percentile
 
 ---
 
@@ -57,12 +62,12 @@ The pipeline is a sequential LangGraph `StateGraph` where each agent node receiv
 
 | Property | Detail |
 |---|---|
-| Input Features | Re_Quote, Q_Valid_DT, Coverage, Agent_Type, Region, Sal_Range, HH_Drivers + risk_tier from A1 |
+| Input Features | Re_Quote, urgency_days, Coverage, Agent_Type, Region, Sal_Range, HH_Drivers, HH_Vehicles, Quoted_Premium, Vehicl_Cost_Range, Driver_Age, Driving_Exp, Prev_Accidents, Prev_Citations, Gender, Marital_Status, Education + risk_tier from A1 |
 | Output | `bind_score`: 0–100, `bind_probability`: float |
-| Model | LightGBM Classifier with SMOTE oversampling |
-| Class Imbalance | Apply SMOTE on training set OR use `scale_pos_weight` in LightGBM |
-| Explainability | SHAP + urgency signal: days remaining on Q_Valid_DT |
-| LangGraph Role | Receives A1 state, appends bind_score, passes forward |
+| Model | **LightGBM Classifier** with SMOTE oversampling |
+| Class Imbalance | SMOTE applied on training set only (22% → 50/50 balanced). Test set stays untouched at real 22% distribution. |
+| Explainability | **4 methods**: SHAP TreeExplainer, LIME, Anchor rules, DiCE counterfactuals |
+| LangGraph Role | Receives A1 state, appends bind_score + explainability outputs, passes forward |
 
 ---
 
@@ -72,8 +77,9 @@ The pipeline is a sequential LangGraph `StateGraph` where each agent node receiv
 |---|---|
 | Input Features | Quoted_Premium, Coverage, Sal_Range, Vehicl_Cost_Range, Re_Quote + bind_score from A2 |
 | Output | `premium_flag`: BLOCKER / ACCEPTABLE, adjusted_band, recommendation text |
-| Model | LLM (Claude API) with structured JSON output + rule-based band calculation |
+| Model | **Groq Llama 3.3 70B** with structured JSON output + rule-based band calculation |
 | Why HYBRID | Rule layer handles numeric bands, LLM generates natural language justification |
+| Fallback | If Groq fails or returns malformed JSON → pure rule-based assessment |
 | Explainability | Chain-of-thought prompting forces LLM to explain its reasoning |
 | LangGraph Role | Only triggers for high bind_score quotes (> 60). Conditional edge in graph. |
 
@@ -83,13 +89,13 @@ The pipeline is a sequential LangGraph `StateGraph` where each agent node receiv
 
 | Property | Detail |
 |---|---|
-| Input | risk_tier (A1), bind_score (A2), premium_flag (A3), Agent_Type, Region |
+| Input | risk_tier (A1), bind_score (A2), premium_flag (A3), Agent_Type, Region, regional_bind_rate (Bonus) |
 | Output | `decision`: AUTO_APPROVE / AGENT_FOLLOWUP / ESCALATE_UNDERWRITER |
-| Logic | Threshold-based on combined signals — no separate model needed |
+| Logic | Threshold-based on combined signals — dynamically adjusted per region/channel |
 | Escalation Trigger | risk=HIGH AND bind_score > 70 AND premium_flag=BLOCKER |
-| Auto Approve | risk=LOW AND bind_score > 75 AND premium_flag=ACCEPTABLE |
+| Auto Approve | risk=LOW AND bind_score >= 75 AND premium_flag=ACCEPTABLE |
 | Agent Follow-Up | Everything in between |
-| Explainability | Structured case summary generated with all upstream signals for underwriter |
+| Explainability | Structured case summary generated with all upstream signals + Groq LLM summary for escalated quotes |
 
 ---
 
@@ -103,33 +109,38 @@ The pipeline is a sequential LangGraph `StateGraph` where each agent node receiv
 | ESCALATE_UNDERWRITER | Model confidence < 0.55 on any critical agent | Yes — low confidence path |
 | ESCALATE_UNDERWRITER | Re_Quote=Yes + risk=HIGH + bind_score < 40 | Yes — re-quote risk flag |
 
+> Thresholds are **dynamically adjusted per region and agent type** (see Section 16 — Regional & Channel Intelligence).
+
 ---
 
 ## 5. Full Tech Stack
 
 ### Backend
 
-| Library / Tool | Version | Purpose |
-|---|---|---|
-| Python | 3.11+ | Core language for all ML and orchestration |
-| FastAPI | Latest | REST API server, exposes pipeline endpoints to Next.js |
-| uvicorn | Latest | ASGI server for FastAPI with async support |
-| LangGraph | 0.2.x | Multi-agent orchestration — StateGraph for sequential pipeline |
-| langchain-anthropic | Latest | Claude API integration inside Agent 3 |
-| pydantic | v2 | Typed state schema passing between LangGraph nodes |
-| SSE (starlette) | Built-in | Server-Sent Events for live dashboard updates |
+| Library / Tool | Purpose |
+|---|---|
+| Python 3.11+ | Core language for all ML and orchestration |
+| FastAPI | REST API server, exposes pipeline endpoints to Next.js |
+| uvicorn | ASGI server for FastAPI with async support |
+| LangGraph 0.2.x | Multi-agent orchestration — StateGraph for sequential pipeline |
+| langchain-groq | **Groq Llama 3.3 70B** integration inside Agent 3 and Agent 4 |
+| pydantic v2 | Typed state schema passing between LangGraph nodes |
+| SSE (starlette) | Server-Sent Events for live dashboard updates |
 
 ### ML / Data Layer
 
 | Library | Purpose |
 |---|---|
 | pandas | EDA, feature engineering, date parsing |
-| scikit-learn | Preprocessing, train/test split, SMOTE pipeline |
+| scikit-learn | Preprocessing, train/test split |
 | imbalanced-learn | SMOTE for Agent 2 class imbalance |
-| xgboost | Agent 1 — Risk Profiler classifier |
-| lightgbm | Agent 2 — Conversion Predictor (faster, handles categoricals natively) |
-| shap | Explainability for both XGBoost and LightGBM agents |
-| joblib | Saving and loading trained .pkl model files |
+| **catboost** | Agent 1 — Risk Profiler (native categorical support, superior on insurance data) |
+| lightgbm | Agent 2 — Conversion Predictor (fast, handles class imbalance well) |
+| shap | SHAP TreeExplainer for both CatBoost and LightGBM |
+| **dice-ml** | DiCE counterfactual explanations — "what needs to change to convert?" |
+| **lime** | LIME local explanations — linear approximation around each prediction |
+| **alibi** | Anchor rule-based explanations — IF-THEN rules for underwriters |
+| joblib | Saving and loading trained model files |
 
 ### Frontend
 
@@ -143,10 +154,34 @@ The pipeline is a sequential LangGraph `StateGraph` where each agent node receiv
 
 ---
 
-## 6. LangGraph State Schema
+## 6. Explainability Design (4 Methods)
+
+This is the key differentiator. Every agent decision is explainable through **4 complementary methods**:
+
+| Method | What It Does | Best For | Used In |
+|---|---|---|---|
+| **SHAP** | Game-theory-based feature importance. Shows how each feature pushes prediction up/down. | Global + local feature importance | Agent 1, Agent 2 |
+| **LIME** | Perturbs input locally, fits linear model to approximate decision boundary. | Quick local "why this prediction?" | Agent 1, Agent 2 |
+| **Anchors** | Generates IF-THEN rules with precision/coverage metrics. E.g. "IF Prev_Accidents >= 2 AND Driver_Age < 25 THEN HIGH risk (precision: 95%)" | Human-readable rules underwriters think in | Agent 1, Agent 2 |
+| **DiCE** | Counterfactual explanations — "This quote would have bound IF premium was $620 instead of $780 OR coverage was Basic instead of Enhanced" | **Actionable recommendations** — what to change | Agent 1, Agent 2 |
+| **Chain-of-Thought** | LLM forced to explain reasoning step by step in natural language | Premium analysis reasoning | Agent 3 |
+| **Structured Summary** | All upstream signals compiled into a readable case summary + LLM narrative | Underwriter handoff | Agent 4 |
+
+### Per-Agent Explainability Matrix
+
+| Agent | SHAP | LIME | Anchors | DiCE | LLM CoT |
+|---|---|---|---|---|---|
+| Agent 1 — Risk Profiler | Yes | Yes | Yes | Yes | — |
+| Agent 2 — Conversion Predictor | Yes | Yes | Yes | Yes | — |
+| Agent 3 — Premium Advisor | — | — | — | — | Yes |
+| Agent 4 — Decision Router | — | — | — | — | Yes (escalated only) |
+
+---
+
+## 7. LangGraph State Schema
 
 ```python
-class QuoteState(TypedDict):
+class QuoteState(TypedDict, total=False):
     # Raw input
     quote_num: str
     agent_type: str
@@ -155,15 +190,26 @@ class QuoteState(TypedDict):
     quoted_premium: float
     coverage: str
     sal_range: str
-    raw_features: dict       # all input columns
+    vehicl_cost_range: str
+    veh_usage: str
+    annual_miles_range: str
+    raw_features: dict
 
     # Agent 1 output
     risk_tier: str           # LOW | MEDIUM | HIGH
-    risk_shap: dict          # top 3 features + values
+    risk_score: float
+    risk_shap: dict          # top 3 SHAP features
+    risk_lime: dict          # LIME local explanation
+    risk_anchors: str        # Anchor IF-THEN rule
+    risk_counterfactuals: list  # DiCE counterfactuals
 
     # Agent 2 output
     bind_score: int          # 0-100
     bind_probability: float
+    bind_shap: dict
+    bind_lime: dict
+    bind_anchors: str
+    bind_counterfactuals: list
     urgency_days: int
 
     # Agent 3 output (conditional)
@@ -179,7 +225,7 @@ class QuoteState(TypedDict):
 
 ---
 
-## 7. LangGraph Graph Wiring
+## 8. LangGraph Graph Wiring
 
 ```python
 from langgraph.graph import StateGraph, END
@@ -208,74 +254,107 @@ pipeline = graph.compile()
 
 ---
 
-## 8. Project Directory Structure
+## 9. Project Directory Structure
 
 ```
-hackathon-uc3/
-  backend/
+AI-DAY-T23-AUTONOMOUS-QUOTE-AGENTS/
+  Docs/
+    MVP_Plan.md
+    GITAM HACKATHON USE CASES_unlocked.pdf
+  ML/
+    datasets/
+      insurance_quotes.csv
+    notebooks/
+      01_EDA_and_Feature_Engineering.ipynb
+      02_Agent1_Risk_Profiler.ipynb
+      03_Agent2_Conversion_Predictor.ipynb
+    models/
+      risk_model.joblib         # CatBoost
+      conversion_model.joblib   # LightGBM
+      risk_explainer.joblib     # SHAP TreeExplainer
+      conversion_explainer.joblib
+      label_encoders.joblib
+      ordinal_maps.joblib
+      feature_config.joblib
+      regional_stats.joblib     # Per-region/channel bind rates
+      train.parquet
+      test.parquet
+    requirements.txt
+  Backend/
     agents/
       agent1_risk_profiler.py
       agent2_conversion_predictor.py
       agent3_premium_advisor.py
       agent4_decision_router.py
     pipeline/
-      state.py              # Pydantic QuoteState schema
-      graph.py              # LangGraph StateGraph wiring
-    models/
-      train_models.py       # EDA + model training script
-      risk_model.pkl        # Saved XGBoost
-      conversion_model.pkl  # Saved LightGBM
+      state.py
+      graph.py
     api/
-      main.py               # FastAPI app
-      routes.py             # /process-quote, /stream endpoints
-    data/
-      insurance_quotes.csv
-  frontend/
-    app/
-      page.tsx              # Main dashboard
-      components/
-        QuoteTable.tsx
-        EscalationQueue.tsx
-        RiskBadge.tsx
-        LiveFeed.tsx
-    lib/
-      api.ts                # SSE + REST client
-  requirements.txt
-  README.md
+      main.py
+      routes.py
+    requirements.txt
+  Frontend/
+    src/
+      app/
+        page.tsx
+        components/
+          QuoteTable.tsx
+          EscalationQueue.tsx
+          RiskBadge.tsx
+          LiveFeed.tsx
+          AnalyticsPanel.tsx
+          RegionalIntelligence.tsx
+      lib/
+        api.ts
+  .env
+  .env.example
+  .gitignore
 ```
 
 ---
 
-## 9. 12-Hour Build Plan
+## 10. 12-Hour Build Plan
 
-| Time Block | Task | Owner Focus | Deliverable |
-|---|---|---|---|
-| Hour 1 | EDA on CSV, check nulls, engineer features (urgency_days, risk buckets) | ML | Clean dataset + feature list |
-| Hour 2 | Train Agent 1 XGBoost, Agent 2 LightGBM+SMOTE, save .pkl, run SHAP | ML | risk_model.pkl, conversion_model.pkl |
-| Hour 3 | Build LangGraph StateGraph, wire all 4 agent nodes, test with 5 quotes | Backend | Working pipeline end-to-end |
-| Hour 4 | Build FastAPI app, /process-quote POST route, /stream SSE route | Backend | API accepting and processing quotes |
-| Hour 5 | Integrate Claude API in Agent 3 with structured JSON output prompt | Backend | premium_flag + reasoning working |
-| Hour 6 | Next.js dashboard scaffold, live table with SSE connection | Frontend | Live updating quote table |
-| Hour 7 | Escalation queue panel, Risk badge components, Bind score column | Frontend | Full dashboard layout |
-| Hour 8 | Recharts — bind score histogram, risk tier donut, EA vs IA bar chart | Frontend | Visual charts on dashboard |
-| Hour 9 | Test full pipeline with 50+ quotes, fix edge cases, tune thresholds | Both | Stable end-to-end demo |
-| Hour 10 | SHAP integration in API response, feature importance in frontend UI | ML + Frontend | Explainability visible in UI |
-| Hour 11 | Bonus: per-region threshold adaptation, EA vs IA comparison panel | Backend | Regional intelligence panel |
-| Hour 12 | Polish UI, demo script, README, full demo run-through | Both | Demo-ready build |
+### Person A: ML + Backend
+
+| Time Block | Task | Deliverable |
+|---|---|---|
+| Hour 1 | EDA: load CSV, check nulls/types, parse dates, engineer `risk_tier` labels, encode features, train/test split | `train.parquet`, `test.parquet`, encoders saved |
+| Hour 2 | Train Agent 1 CatBoost (3-class risk tier), run SHAP | `risk_model.joblib` |
+| Hour 3 | Train Agent 2 LightGBM + SMOTE, run SHAP, evaluate ROC-AUC & PR-AUC | `conversion_model.joblib` |
+| Hour 4 | Run DiCE + Anchor + LIME on both models, save demo outputs | Multi-explainability notebooks complete |
+| Hour 5 | Build LangGraph StateGraph, wire all 4 agent nodes, Groq integration for Agent 3 | Working pipeline end-to-end |
+| Hour 6 | Build FastAPI app, all routes, CORS, SSE streaming | API live at localhost:8000 |
+| Hour 7 | Compute regional/channel stats, integrate dynamic thresholds into Agent 4 | `regional_stats.joblib`, adaptive routing |
+| Hour 8 | Test full pipeline with 100+ quotes, fix edge cases, tune thresholds | Stable end-to-end |
+| Hour 9-10 | Wire explainability outputs into API responses, edge case hardening | Explainability in every API response |
+| Hour 11-12 | Integration testing with frontend, demo script, README | Demo-ready backend |
+
+### Person B: Frontend
+
+| Time Block | Task | Deliverable |
+|---|---|---|
+| Hour 1-2 | Next.js scaffold, Tailwind + shadcn setup, layout, routing | Dashboard shell |
+| Hour 3-4 | QuoteTable component, RiskBadge, DecisionBadge, SSE connection | Live updating quote table |
+| Hour 5-6 | EscalationQueue panel with case summary cards, SHAP display | Escalation workflow |
+| Hour 7-8 | Recharts analytics: bind score histogram, risk tier donut, EA vs IA bar chart | Visual analytics |
+| Hour 9-10 | **Regional Intelligence panel**: region comparison table, dynamic threshold display, EA vs IA deep dive | Bonus feature complete |
+| Hour 11-12 | Polish UI, responsive design, demo walkthrough, README | Demo-ready frontend |
 
 ---
 
-## 10. Dashboard — Key Screens
+## 11. Dashboard — Key Screens
 
 ### Screen 1 — Live Quote Feed
 - Auto-refreshing table via SSE showing quotes being processed in real time
 - Columns: Quote ID, Agent Type, Region, Risk Tier (badge), Bind Score (progress bar), Decision (badge)
 - Color coding: LOW=green, MEDIUM=amber, HIGH=red for risk tiers
 - AUTO_APPROVE=green, AGENT_FOLLOWUP=blue, ESCALATE=red for decisions
+- Expandable row: SHAP features, LIME explanation, Anchor rule, DiCE counterfactuals
 
 ### Screen 2 — Escalation Queue
 - Dedicated panel showing only escalated quotes awaiting underwriter action
-- Each card: Quote ID, full case summary, SHAP top features, premium flag reasoning
+- Each card: Quote ID, full case summary, SHAP top features, premium flag reasoning, counterfactual suggestions
 - Mark as resolved button to clear from queue
 
 ### Screen 3 — Analytics Panel
@@ -284,27 +363,24 @@ hackathon-uc3/
 - EA vs IA conversion rate comparison bar chart
 - Region-wise bind rate comparison table
 
----
-
-## 11. Explainability Design
-
-| Agent | Method | What It Shows |
-|---|---|---|
-| Agent 1 — Risk Profiler | SHAP TreeExplainer | Top 3 features pushing risk up or down with delta values |
-| Agent 2 — Conversion Predictor | SHAP + urgency signal | Why bind probability is high/low, days to expiry impact |
-| Agent 3 — Premium Advisor | LLM Chain-of-Thought | Natural language: why premium is a blocker, what band to offer |
-| Agent 4 — Decision Router | Structured case summary | Full reasoning trace for underwriter — all upstream signals in one block |
+### Screen 4 — Regional & Channel Intelligence (Bonus)
+- Per-region bind rate heatmap or bar chart
+- EA vs IA head-to-head performance comparison per region
+- Dynamic threshold display: show how escalation thresholds adapt per region
+- Insight cards: "Region C has 35% bind rate vs 22% overall — thresholds lowered"
 
 ---
 
-## 12. Agent 3 — Claude API Prompt Template
+## 12. Agent 3 — Groq Llama 3.3 70B Prompt Template
 
 ```
 SYSTEM:
-You are an insurance premium analyst. Always respond with valid JSON only.
-No preamble, no explanation outside the JSON object.
+You are an insurance premium analyst. You MUST respond with ONLY a valid JSON object.
+Do not include any text before or after the JSON. Do not use markdown code fences.
 
 USER:
+Analyze this auto insurance quote and determine if the premium is blocking conversion.
+
 Quote context:
 - Quoted Premium: {quoted_premium}
 - Coverage Type: {coverage}
@@ -314,62 +390,40 @@ Quote context:
 - Bind Score: {bind_score} / 100
 - Risk Tier: {risk_tier}
 
-Analyze if the quoted premium is the conversion blocker.
-Respond ONLY with this JSON:
-{
-  "premium_flag": "BLOCKER" | "ACCEPTABLE",
-  "adjusted_band_low": number,
-  "adjusted_band_high": number,
-  "reasoning": "2-3 sentence explanation",
-  "alternative_coverage": "string or null"
-}
+Respond with this exact JSON structure:
+{"premium_flag": "BLOCKER or ACCEPTABLE", "adjusted_band_low": number, "adjusted_band_high": number, "reasoning": "2-3 sentence explanation", "alternative_coverage": "string or null"}
 ```
+
+**Fallback**: If Groq fails or returns malformed JSON, rule-based premium bands activate automatically:
+- Salary-to-premium affordability lookup
+- Coverage multiplier (Basic=0.85x, Balanced=1.0x, Enhanced=1.15x)
 
 ---
 
-## 13. FastAPI SSE Endpoint Pattern
+## 13. FastAPI Endpoints
 
-```python
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-import asyncio, json
-
-app = FastAPI()
-
-@app.post("/process-quote")
-async def process_quote(quote: dict):
-    result = await pipeline.ainvoke(quote)
-    return result
-
-@app.get("/stream")
-async def stream_quotes():
-    async def event_generator():
-        for quote in get_pending_quotes():
-            result = await pipeline.ainvoke(quote)
-            yield f"data: {json.dumps(result)}\n\n"
-            await asyncio.sleep(0.1)
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
-```
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/process-quote` | Process single quote through 4-agent pipeline |
+| POST | `/api/process-batch` | Process multiple quotes, streams results via SSE |
+| GET | `/api/stream` | SSE endpoint — pushes each processed quote to connected clients |
+| GET | `/api/quotes` | Get processed quotes with filtering (by decision, pagination) |
+| GET | `/api/stats` | Aggregate statistics (decisions, risk tiers, bind scores) |
+| GET | `/api/sample-quotes` | Load N random quotes from dataset for demo |
+| GET | `/api/regional-stats` | Per-region and per-channel bind rates + threshold adjustments |
 
 ---
 
-## 14. Next.js SSE Consumer Pattern
+## 14. Groq Free Tier Limits
 
-```typescript
-// lib/api.ts
-export function streamQuotes(onUpdate: (data: QuoteResult) => void) {
-  const source = new EventSource("/api/stream");
-  source.onmessage = (e) => {
-    const result = JSON.parse(e.data) as QuoteResult;
-    onUpdate(result);
-  };
-  source.onerror = () => {
-    source.close();
-    setTimeout(() => streamQuotes(onUpdate), 2000); // auto-reconnect
-  };
-  return source;
-}
-```
+| Model | RPM | Daily Requests | Context |
+|---|---|---|---|
+| llama-3.3-70b-versatile | 30 | 14,400 | 131K tokens |
+
+- Agent 3 only fires when `bind_score > 60` (~30-40% of quotes)
+- Agent 4 LLM summary only fires for ESCALATE decisions (~10-15% of quotes)
+- Processing 100 demo quotes = ~40 Groq calls = well within limits
+- Retry/backoff wrapper for rate limit safety
 
 ---
 
@@ -377,53 +431,97 @@ export function streamQuotes(onUpdate: (data: QuoteResult) => void) {
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| LLM returns malformed JSON in Agent 3 | Medium | try/except with fallback to rule-based band only |
-| SMOTE overfitting on Agent 2 | Low-Medium | Validate on held-out test set, stratified k-fold |
+| Groq returns malformed JSON in Agent 3 | Medium | try/except with fallback to rule-based bands; robust JSON parser handles markdown fences |
+| SMOTE overfitting on Agent 2 | Low-Medium | Validate on held-out test set at real 22% distribution |
 | SSE connection drops in browser | Low | Auto-reconnect EventSource with exponential backoff |
 | Dirty dates in Q_Valid_DT | Medium | Parse with pandas coerce, fill nulls with median urgency |
-| Claude API rate limiting during demo | Low | Cache Agent 3 responses for repeated quote patterns |
-| Pipeline too slow for live demo | Low-Medium | Process quotes in background thread, SSE pushes as ready |
+| Groq rate limiting during demo | Low | Cache Agent 3 responses; conditional Agent 3 invocation reduces calls |
+| Pipeline too slow for live demo | Low-Medium | SHAP always (fast for trees); LIME/Anchors/DiCE only for escalated quotes or on-demand |
+| CatBoost categorical encoding mismatch at inference | Low | cat_features indices saved in feature_config; raw strings passed directly |
 
 ---
 
-## 16. Bonus — Regional and Channel Intelligence
+## 16. Regional & Channel Intelligence (Bonus — Required)
 
-If time permits after Hour 10:
+This is **not optional** — it directly addresses Bonus point 6 in the problem statement.
 
-- Group dataset by Region and Agent_Type, compute per-group bind rates
-- Store as a lookup table loaded at pipeline startup
-- Agent 4 reads regional bind rate and dynamically adjusts escalation threshold
-- Example: Region C with 35% bind rate gets lower escalation threshold vs overall 22%
-- Add EA vs IA comparison bar chart to Analytics panel in Next.js
+### What It Does
 
-This is a 1–2 hour addition that directly addresses the bonus criterion in the problem statement.
+1. **Compute per-region and per-agent-type bind rates** from the full dataset at startup
+2. **Store as a lookup table** (`regional_stats.joblib`) loaded at pipeline startup
+3. **Agent 4 dynamically adjusts escalation thresholds** based on regional performance:
+   - Regions with higher bind rates (e.g. Region C at 35%) get lower escalation thresholds (more autos get approved)
+   - Regions with lower bind rates get stricter thresholds (more escalations to investigate why)
+4. **EA vs IA comparison**: Track conversion rate differences by agent type per region
+
+### Implementation
+
+```python
+# Computed once at startup from full dataset
+regional_stats = df.groupby(["Region", "Agent_Type"]).agg(
+    total_quotes=("Quote_Num", "count"),
+    bound_quotes=("Policy_Bind_enc", "sum"),
+    bind_rate=("Policy_Bind_enc", "mean"),
+    avg_premium=("Quoted_Premium", "mean"),
+).reset_index()
+
+# Dynamic threshold adjustment
+def get_regional_threshold(region, agent_type, base_threshold=75):
+    region_rate = regional_stats.query(f"Region == '{region}'")["bind_rate"].mean()
+    overall_rate = df["Policy_Bind_enc"].mean()
+    adjustment = (region_rate - overall_rate) * 50  # scale factor
+    return base_threshold - adjustment  # higher bind rate → lower threshold
+```
+
+### Dashboard Panel
+
+- Region comparison bar chart (bind rate per region)
+- EA vs IA head-to-head per region (grouped bar chart)
+- Dynamic threshold table showing adjusted thresholds per region
+- Insight cards highlighting outlier regions
 
 ---
 
 ## 17. requirements.txt
 
+### ML / Notebooks
 ```
-# Core
+pandas
+numpy
+scikit-learn
+imbalanced-learn
+catboost
+lightgbm
+shap
+dice-ml
+lime
+alibi
+joblib
+matplotlib
+seaborn
+jupyter
+ipykernel
+```
+
+### Backend
+```
 fastapi
 uvicorn[standard]
 pydantic>=2.0
-
-# LangGraph + LangChain
 langgraph
 langchain
-langchain-anthropic
-
-# ML
+langchain-groq
 pandas
 scikit-learn
 imbalanced-learn
-xgboost
+catboost
 lightgbm
 shap
+dice-ml
+lime
+alibi
 joblib
 numpy
-
-# Utilities
 python-dotenv
 httpx
 ```
