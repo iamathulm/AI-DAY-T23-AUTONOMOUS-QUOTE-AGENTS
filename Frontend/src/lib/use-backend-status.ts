@@ -3,7 +3,24 @@
 import { useSyncExternalStore } from "react";
 import { pushNotification } from "./use-notifications";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+function normalizeApiUrl(raw: string | undefined): string {
+  const fallback = "http://localhost:8000/api";
+  if (!raw) return fallback;
+
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  try {
+    const url = new URL(withProtocol);
+    return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
+  } catch {
+    return fallback;
+  }
+}
+
+const API_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api");
 const POLL_INTERVAL = 15_000; // re-check every 15 s
 
 export type BackendStatus = "checking" | "online" | "offline";
