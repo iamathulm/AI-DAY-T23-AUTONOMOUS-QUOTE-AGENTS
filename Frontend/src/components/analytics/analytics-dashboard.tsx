@@ -23,16 +23,29 @@ import {
 import { Activity, TrendingUp, CheckCircle, AlertTriangle } from "lucide-react";
 
 const RISK_COLORS: Record<string, string> = {
-  LOW: "#00F5D4",
-  MEDIUM: "#F9C80E",
-  HIGH: "#FF0054",
+  LOW: "#22C55E",
+  MEDIUM: "#EAB308",
+  HIGH: "#EF4444",
 };
 
 const DECISION_COLORS: Record<string, string> = {
-  AUTO_APPROVE: "#2DE2E6",
-  AGENT_FOLLOWUP: "#9B5DE5",
-  ESCALATE_UNDERWRITER: "#FF0054",
+  AUTO_APPROVE: "#3B82F6",
+  AGENT_FOLLOWUP: "#8B5CF6",
+  ESCALATE_UNDERWRITER: "#EF4444",
 };
+
+const HISTOGRAM_COLORS = [
+  "#3B82F6", // blue
+  "#22C55E", // green
+  "#EAB308", // yellow
+  "#F97316", // orange
+  "#EF4444", // red
+  "#8B5CF6", // purple
+  "#06B6D4", // cyan
+  "#84CC16", // lime
+  "#F59E0B", // amber
+  "#EC4899", // pink
+];
 
 const DECISION_LABELS: Record<string, string> = {
   AUTO_APPROVE: "Auto Approve",
@@ -116,21 +129,21 @@ export function AnalyticsDashboard() {
           label="Total Quotes Processed"
           value={stats.total_quotes.toLocaleString()}
           icon={Activity}
-          accent="#00E5FF"
+          accent="#3B82F6"
         />
         <KpiCard
           label="Overall Bind Rate"
           value={stats.bind_rate.toFixed(1)}
           suffix="%"
           icon={TrendingUp}
-          accent="#39FF14"
+          accent="#22C55E"
         />
         <KpiCard
           label="Auto-Approved"
           value={stats.auto_approve_pct.toFixed(1)}
           suffix="%"
           icon={CheckCircle}
-          accent="#B48CFF"
+          accent="#8B5CF6"
         />
         <KpiCard
           label="Escalation Rate"
@@ -152,13 +165,6 @@ export function AnalyticsDashboard() {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.bind_score_histogram}>
-                  <defs>
-                    <linearGradient id="bindScoreGradient" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#00E5FF" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#9B5DE5" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#FF9E00" stopOpacity={1} />
-                    </linearGradient>
-                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
                   <XAxis
                     dataKey="range"
@@ -175,10 +181,18 @@ export function AnalyticsDashboard() {
                   <Bar
                     dataKey="count"
                     name="Quotes"
-                    fill="url(#bindScoreGradient)"
+                    fill="#3B82F6"
                     radius={[2, 2, 0, 0]}
-                    fillOpacity={1}
-                  />
+                    fillOpacity={0.95}
+                    activeBar={false}
+                  >
+                    {stats.bind_score_histogram.map((entry, index) => (
+                      <Cell
+                        key={entry.range}
+                        fill={HISTOGRAM_COLORS[index % HISTOGRAM_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -208,7 +222,7 @@ export function AnalyticsDashboard() {
                       <Cell
                         key={entry.name}
                         fill={RISK_COLORS[entry.name]}
-                        fillOpacity={0.8}
+                        fillOpacity={1}
                       />
                     ))}
                   </Pie>
@@ -258,7 +272,7 @@ export function AnalyticsDashboard() {
                     <Cell
                       key={entry.key}
                       fill={DECISION_COLORS[entry.key]}
-                      fillOpacity={0.7}
+                      fillOpacity={0.95}
                     />
                   ))}
                 </Bar>
