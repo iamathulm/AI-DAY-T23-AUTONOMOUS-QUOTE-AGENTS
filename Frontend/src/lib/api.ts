@@ -31,7 +31,14 @@ function normalizeApiUrl(raw: string | undefined): string {
 
   try {
     const url = new URL(withProtocol);
-    return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
+    const normalizedPath = url.pathname.replace(/\/+$/, "");
+    const apiPath =
+      normalizedPath === "" || normalizedPath === "/"
+        ? "/api"
+        : normalizedPath.endsWith("/api")
+          ? normalizedPath
+          : `${normalizedPath}/api`;
+    return `${url.origin}${apiPath}`;
   } catch {
     return fallback;
   }
