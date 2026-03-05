@@ -1,0 +1,36 @@
+# Node / Frontend (not needed in backend image)
+Frontend/node_modules/
+Frontend/.next/
+Frontend/out/
+node_modules/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+ML/notebooks/.ipynb_checkpoints/
+
+# Env / secrets
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Docs (not needed at runtime)
+Docs/
+README.md
