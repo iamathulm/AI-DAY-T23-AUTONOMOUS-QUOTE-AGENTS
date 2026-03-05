@@ -29,7 +29,7 @@ function EscalationCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className="animated-border rounded-2xl border border-border/90 bg-card/95 shadow-[0_14px_32px_rgba(0,0,0,0.35)] ring-1 ring-white/5">
       {/* Card header with urgency indicator */}
       <div className="flex items-start gap-4 border-b border-border px-5 py-4">
         <div className="flex size-9 shrink-0 items-center justify-center rounded bg-[var(--risk-high)]/10">
@@ -78,7 +78,7 @@ function EscalationCard({
       </div>
 
       {/* Compact info row */}
-      <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-border bg-muted/10 px-5 py-2.5 text-[11px]">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-border/90 bg-muted/15 px-5 py-2.5 text-[11px]">
         <span>
           <span className="text-muted-foreground">Premium: </span>
           <span className="font-mono font-semibold">${quote.quoted_premium.toLocaleString()}</span>
@@ -170,7 +170,7 @@ function EscalationCard({
               </TabsContent>
               {quote.premium_reasoning && (
                 <TabsContent value="premium" className="pt-3">
-                  <div className="rounded border border-border bg-muted/20 px-3 py-2">
+                  <div className="animated-border rounded-xl border border-border/90 bg-muted/20 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                     <p className="text-xs leading-relaxed text-foreground/80">
                       {quote.premium_reasoning}
                     </p>
@@ -215,7 +215,7 @@ export function EscalationQueue({ quotes }: { quotes: QuoteResult[] }) {
 
   if (escalated.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-card py-16">
+      <div className="animated-border flex flex-col items-center justify-center rounded-2xl border border-border/90 bg-card/95 py-16 shadow-[0_14px_32px_rgba(0,0,0,0.35)] ring-1 ring-white/5">
         <CheckCircle2 className="size-8 text-[var(--risk-low)]/50 mb-3" />
         <p className="text-sm text-muted-foreground">All escalations resolved</p>
       </div>

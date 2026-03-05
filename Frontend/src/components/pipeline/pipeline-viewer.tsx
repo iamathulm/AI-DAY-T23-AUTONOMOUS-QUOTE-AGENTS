@@ -78,12 +78,12 @@ function StepCard({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-lg border transition-all",
+        "animated-border flex flex-col rounded-2xl border border-border/90 transition-all shadow-[0_10px_24px_rgba(0,0,0,0.28)] ring-1 ring-white/5",
         isActive
-          ? "border-border bg-card"
+          ? "bg-card/95"
           : status === "skipped"
-            ? "border-border/50 bg-card/50"
-            : "border-border/30 bg-card/30"
+            ? "bg-card/60"
+            : "bg-card/45"
       )}
     >
       {/* Step header */}
@@ -173,7 +173,7 @@ function StepCard({
               )}
             </div>
             {quote.premium_reasoning && (
-              <div className="rounded border border-border bg-muted/20 px-3 py-2">
+              <div className="animated-border rounded-xl border border-border/90 bg-muted/20 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   LLM Reasoning
                 </p>
@@ -188,7 +188,7 @@ function StepCard({
         {status === "complete" && quote && step.id === "router" && (
           <div className="space-y-3">
             <DecisionBadge decision={quote.decision} />
-            <div className="rounded border border-border bg-muted/20 px-3 py-2">
+            <div className="animated-border rounded-xl border border-border/90 bg-muted/20 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Case Summary
               </p>

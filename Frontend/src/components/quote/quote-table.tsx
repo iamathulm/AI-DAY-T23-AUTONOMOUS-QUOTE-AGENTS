@@ -46,7 +46,7 @@ function QuoteExpandedRow({ quote }: { quote: QuoteResult }) {
   return (
     <div className="space-y-4 px-2 py-4">
       {/* Summary strip */}
-      <div className="flex flex-wrap gap-x-6 gap-y-2 rounded border border-border bg-muted/20 px-4 py-2.5 text-[11px]">
+      <div className="animated-border flex flex-wrap gap-x-6 gap-y-2 rounded-xl border border-border/90 bg-muted/25 px-4 py-2.5 text-[11px] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
         <div>
           <span className="text-muted-foreground">Premium: </span>
           <span className="font-mono font-semibold text-foreground">
@@ -83,7 +83,7 @@ function QuoteExpandedRow({ quote }: { quote: QuoteResult }) {
       </div>
 
       {/* Case summary */}
-      <div className="rounded border border-border bg-muted/10 px-4 py-3">
+      <div className="animated-border rounded-xl border border-border/90 bg-muted/15 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
         <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Case Summary
         </h4>
@@ -149,7 +149,7 @@ function QuoteExpandedRow({ quote }: { quote: QuoteResult }) {
                   </span>
                 )}
               </div>
-              <div className="rounded border border-border bg-muted/20 px-4 py-3">
+              <div className="animated-border rounded-xl border border-border/90 bg-muted/20 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                 <p className="text-xs leading-relaxed text-foreground/80">
                   {quote.premium_reasoning}
                 </p>
@@ -166,7 +166,7 @@ export function QuoteTable({ quotes }: { quotes: QuoteResult[] }) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className="animated-border rounded-2xl border border-border/90 bg-card/95 shadow-[0_14px_32px_rgba(0,0,0,0.35)] ring-1 ring-white/5">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
