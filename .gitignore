@@ -8,11 +8,6 @@ build/
 venv/
 env/
 
-# ML artifacts
-ML/models/*.pkl
-ML/models/*.joblib
-*.pkl
-
 # Jupyter
 .ipynb_checkpoints/
 
