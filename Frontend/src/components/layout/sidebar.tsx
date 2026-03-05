@@ -10,6 +10,7 @@ import {
   BarChart3,
   Globe,
   Activity,
+  House,
 } from "lucide-react";
 
 const navItems = [
@@ -76,6 +77,16 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="px-3 pb-3">
+        <Link
+          href="/"
+          className="group flex items-center gap-2.5 rounded-md border border-sidebar-border bg-sidebar-accent/40 px-2.5 py-1.5 text-[13px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+        >
+          <House className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+          Back to Landing
+        </Link>
+      </div>
 
       {/* System status footer */}
       <div className="border-t border-sidebar-border px-4 py-3">
