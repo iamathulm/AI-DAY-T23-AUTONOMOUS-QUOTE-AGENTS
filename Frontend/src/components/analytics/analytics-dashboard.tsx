@@ -23,15 +23,15 @@ import {
 import { Activity, TrendingUp, CheckCircle, AlertTriangle } from "lucide-react";
 
 const RISK_COLORS: Record<string, string> = {
-  LOW: "#E5E5E5",
-  MEDIUM: "#A3A3A3",
-  HIGH: "#FF4D6D",
+  LOW: "#00F5D4",
+  MEDIUM: "#F9C80E",
+  HIGH: "#FF0054",
 };
 
 const DECISION_COLORS: Record<string, string> = {
-  AUTO_APPROVE: "#E5E5E5",
-  AGENT_FOLLOWUP: "#B48CFF",
-  ESCALATE_UNDERWRITER: "#FF4D6D",
+  AUTO_APPROVE: "#2DE2E6",
+  AGENT_FOLLOWUP: "#9B5DE5",
+  ESCALATE_UNDERWRITER: "#FF0054",
 };
 
 const DECISION_LABELS: Record<string, string> = {
@@ -116,14 +116,14 @@ export function AnalyticsDashboard() {
           label="Total Quotes Processed"
           value={stats.total_quotes.toLocaleString()}
           icon={Activity}
-          accent="#F5F5F5"
+          accent="#00E5FF"
         />
         <KpiCard
           label="Overall Bind Rate"
           value={stats.bind_rate.toFixed(1)}
           suffix="%"
           icon={TrendingUp}
-          accent="#E5E5E5"
+          accent="#39FF14"
         />
         <KpiCard
           label="Auto-Approved"
@@ -152,6 +152,13 @@ export function AnalyticsDashboard() {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.bind_score_histogram}>
+                  <defs>
+                    <linearGradient id="bindScoreGradient" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#00E5FF" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#9B5DE5" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#FF9E00" stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
                   <XAxis
                     dataKey="range"
@@ -168,9 +175,9 @@ export function AnalyticsDashboard() {
                   <Bar
                     dataKey="count"
                     name="Quotes"
-                    fill="#D4D4D4"
+                    fill="url(#bindScoreGradient)"
                     radius={[2, 2, 0, 0]}
-                    fillOpacity={0.8}
+                    fillOpacity={1}
                   />
                 </BarChart>
               </ResponsiveContainer>
