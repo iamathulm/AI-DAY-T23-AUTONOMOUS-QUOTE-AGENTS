@@ -23,15 +23,15 @@ import {
 import { Activity, TrendingUp, CheckCircle, AlertTriangle } from "lucide-react";
 
 const RISK_COLORS: Record<string, string> = {
-  LOW: "#2DD4A8",
-  MEDIUM: "#F0AD4E",
-  HIGH: "#F0735A",
+  LOW: "#E5E5E5",
+  MEDIUM: "#A3A3A3",
+  HIGH: "#FF4D6D",
 };
 
 const DECISION_COLORS: Record<string, string> = {
-  AUTO_APPROVE: "#2DD4A8",
-  AGENT_FOLLOWUP: "#7C8CF8",
-  ESCALATE_UNDERWRITER: "#F0735A",
+  AUTO_APPROVE: "#E5E5E5",
+  AGENT_FOLLOWUP: "#B48CFF",
+  ESCALATE_UNDERWRITER: "#FF4D6D",
 };
 
 const DECISION_LABELS: Record<string, string> = {
@@ -116,28 +116,28 @@ export function AnalyticsDashboard() {
           label="Total Quotes Processed"
           value={stats.total_quotes.toLocaleString()}
           icon={Activity}
-          accent="#E2A832"
+          accent="#F5F5F5"
         />
         <KpiCard
           label="Overall Bind Rate"
           value={stats.bind_rate.toFixed(1)}
           suffix="%"
           icon={TrendingUp}
-          accent="#2DD4A8"
+          accent="#E5E5E5"
         />
         <KpiCard
           label="Auto-Approved"
           value={stats.auto_approve_pct.toFixed(1)}
           suffix="%"
           icon={CheckCircle}
-          accent="#2DD4A8"
+          accent="#B48CFF"
         />
         <KpiCard
           label="Escalation Rate"
           value={stats.escalation_pct.toFixed(1)}
           suffix="%"
           icon={AlertTriangle}
-          accent="#F0735A"
+          accent="#FF4D6D"
         />
       </div>
 
@@ -152,23 +152,23 @@ export function AnalyticsDashboard() {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.bind_score_histogram}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
                   <XAxis
                     dataKey="range"
-                    tick={{ fontSize: 10, fill: "#64748B" }}
-                    axisLine={{ stroke: "#1E293B" }}
+                    tick={{ fontSize: 10, fill: "#A3A3A3" }}
+                    axisLine={{ stroke: "#2A2A2A" }}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: "#64748B" }}
-                    axisLine={{ stroke: "#1E293B" }}
+                    tick={{ fontSize: 10, fill: "#A3A3A3" }}
+                    axisLine={{ stroke: "#2A2A2A" }}
                     tickLine={false}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar
                     dataKey="count"
                     name="Quotes"
-                    fill="#E2A832"
+                    fill="#D4D4D4"
                     radius={[2, 2, 0, 0]}
                     fillOpacity={0.8}
                   />
@@ -230,18 +230,18 @@ export function AnalyticsDashboard() {
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={decisionData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" horizontal={false} />
                 <XAxis
                   type="number"
-                  tick={{ fontSize: 10, fill: "#64748B" }}
-                  axisLine={{ stroke: "#1E293B" }}
+                  tick={{ fontSize: 10, fill: "#A3A3A3" }}
+                  axisLine={{ stroke: "#2A2A2A" }}
                   tickLine={false}
                 />
                 <YAxis
                   type="category"
                   dataKey="name"
-                  tick={{ fontSize: 11, fill: "#94A3B8" }}
-                  axisLine={{ stroke: "#1E293B" }}
+                  tick={{ fontSize: 11, fill: "#D4D4D4" }}
+                  axisLine={{ stroke: "#2A2A2A" }}
                   tickLine={false}
                   width={100}
                 />

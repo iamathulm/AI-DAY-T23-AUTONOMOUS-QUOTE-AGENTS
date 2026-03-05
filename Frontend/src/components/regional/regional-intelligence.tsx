@@ -130,16 +130,16 @@ export function RegionalIntelligence() {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={eaIaData} barGap={4}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
                 <XAxis
                   dataKey="region"
-                  tick={{ fontSize: 11, fill: "#94A3B8" }}
-                  axisLine={{ stroke: "#1E293B" }}
+                  tick={{ fontSize: 11, fill: "#D4D4D4" }}
+                  axisLine={{ stroke: "#2A2A2A" }}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: "#64748B" }}
-                  axisLine={{ stroke: "#1E293B" }}
+                  tick={{ fontSize: 10, fill: "#A3A3A3" }}
+                  axisLine={{ stroke: "#2A2A2A" }}
                   tickLine={false}
                   domain={[0, 35]}
                   tickFormatter={(v) => `${v}%`}
@@ -157,14 +157,14 @@ export function RegionalIntelligence() {
                 <Bar
                   dataKey="EA"
                   name="Exclusive Agent"
-                  fill="#E2A832"
+                  fill="#E5E5E5"
                   radius={[2, 2, 0, 0]}
                   fillOpacity={0.8}
                 />
                 <Bar
                   dataKey="IA"
                   name="Independent Agent"
-                  fill="#7C8CF8"
+                  fill="#B48CFF"
                   radius={[2, 2, 0, 0]}
                   fillOpacity={0.8}
                 />

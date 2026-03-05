@@ -9,8 +9,8 @@ export default function Home() {
         <DotGrid
           dotSize={5}
           gap={15}
-          baseColor="#271E37"
-          activeColor="#5227FF"
+          baseColor="#1A1A1A"
+          activeColor="#F5F5F5"
           proximity={120}
           shockRadius={250}
           shockStrength={5}
