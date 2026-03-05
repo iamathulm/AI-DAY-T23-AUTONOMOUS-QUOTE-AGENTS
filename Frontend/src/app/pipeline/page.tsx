@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import type { QuoteResult } from "@/lib/types";
 import { MOCK_QUOTES } from "@/lib/mock-data";
 import { fetchQuotes } from "@/lib/api";
@@ -16,14 +15,14 @@ import {
 } from "@/components/ui/select";
 
 export default function PipelinePage() {
-  const searchParams = useSearchParams();
-  const requestedQuote = searchParams.get("quote") ?? "";
   const [quotes, setQuotes] = useState<QuoteResult[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [fetchFailed, setFetchFailed] = useState(false);
 
   useEffect(() => {
+    const requestedQuote = new URLSearchParams(window.location.search).get("quote") ?? "";
+
     fetchQuotes({ limit: 500 })
       .then(({ quotes: q }) => {
         if (q.length > 0) {
@@ -36,7 +35,7 @@ export default function PipelinePage() {
       })
       .catch(() => setFetchFailed(true))
       .finally(() => setLoading(false));
-  }, [requestedQuote]);
+  }, []);
 
   function loadSample() {
     setQuotes(MOCK_QUOTES);

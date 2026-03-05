@@ -154,12 +154,18 @@ Every agent decision is explainable. All ML-based explanations are computed **li
 
 ### Prerequisites
 - Python 3.11+, Node.js 20+, Groq API key ([console.groq.com](https://console.groq.com))
+- Supabase project (optional, recommended for persistent judge-visible quote history)
 
 ### Setup
 
 ```bash
-# 1. Environment variable
-echo "GROQ_API_KEY=gsk_your_key_here" > .env
+# 1. Environment variables
+cat > .env << 'EOF'
+GROQ_API_KEY=gsk_your_key_here
+# Supabase (optional but recommended for persistence)
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+EOF
 
 # 2. Backend
 python3 -m venv .venv && source .venv/bin/activate
@@ -188,6 +194,24 @@ cd Frontend && npm run dev
 curl http://localhost:8000/health
 # {"status":"ok","service":"quote-agents-pipeline"}
 ```
+
+### Enable Persistent Quote Storage (Supabase)
+
+Run the SQL schema once in Supabase SQL Editor:
+
+```sql
+-- paste and run file contents from
+-- supabase/schema.sql
+```
+
+After backend restart, these endpoints read from Supabase when configured:
+- `/api/quotes`
+- `/api/stats`
+- `/api/regional-stats`
+
+Writes happen on:
+- `/api/process-quote`
+- `/api/process-batch`
 
 > **Full setup instructions:** See [Docs/Setup.md](Docs/Setup.md) for detailed setup guide, demo walkthrough, and troubleshooting.
 
@@ -218,8 +242,7 @@ AI-DAY-T23-AUTONOMOUS-QUOTE-AGENTS/
 ├── Docs/
 │   ├── Technical_Documentation.md          # Comprehensive technical documentation
 │   ├── Setup.md                            # Setup & run guide
-│   └── MVP_Plan.md                         # MVP build plan
-└── .env                                    # GROQ_API_KEY (not committed)
+└── .env                                    # Groq + optional Supabase keys (not committed)
 ```
 
 ---
@@ -230,7 +253,12 @@ AI-DAY-T23-AUTONOMOUS-QUOTE-AGENTS/
 |----------|-------------|
 | [Docs/Technical_Documentation.md](Docs/Technical_Documentation.md) | Comprehensive technical documentation (1,700+ lines) — 20 sections, 14 Mermaid diagrams, model details, honest assessment, defense points |
 | [Docs/Setup.md](Docs/Setup.md) | Step-by-step setup guide with troubleshooting |
-| [Docs/MVP_Plan.md](Docs/MVP_Plan.md) | Original MVP build plan |
+
+## Deployment Notes
+
+- **Frontend (Vercel):** set `NEXT_PUBLIC_API_URL` to your deployed backend `/api` base URL.
+- **Backend (Render/Railway/Fly/K8s):** set `GROQ_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+- Keep backend on Node runtime equivalent for Python service; do not expose service role key to client.
 
 ---
 

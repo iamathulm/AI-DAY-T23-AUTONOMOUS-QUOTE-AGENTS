@@ -301,7 +301,7 @@ export function PipelineViewer({ quote }: { quote: QuoteResult | null }) {
       </div>
 
       {/* Step detail cards */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
         {STEPS.map((step) => (
           <StepCard
             key={step.id}

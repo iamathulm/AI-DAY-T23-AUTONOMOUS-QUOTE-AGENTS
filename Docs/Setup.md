@@ -9,13 +9,14 @@ Complete setup instructions for running the multi-agent insurance quote pipeline
 1. [Prerequisites](#1-prerequisites)
 2. [Clone & Project Structure](#2-clone--project-structure)
 3. [Environment Variables](#3-environment-variables)
-4. [ML Notebooks — Training Models](#4-ml-notebooks--training-models)
-5. [Backend — API Server](#5-backend--api-server)
-6. [Frontend — Dashboard](#6-frontend--dashboard)
-7. [Running the Full Stack](#7-running-the-full-stack)
-8. [Verifying Everything Works](#8-verifying-everything-works)
-9. [Demo Walkthrough](#9-demo-walkthrough)
-10. [Troubleshooting](#10-troubleshooting)
+4. [Supabase (Optional, Recommended)](#4-supabase-optional-recommended)
+5. [ML Notebooks — Training Models](#5-ml-notebooks--training-models)
+6. [Backend — API Server](#6-backend--api-server)
+7. [Frontend — Dashboard](#7-frontend--dashboard)
+8. [Running the Full Stack](#8-running-the-full-stack)
+9. [Verifying Everything Works](#9-verifying-everything-works)
+10. [Demo Walkthrough](#10-demo-walkthrough)
+11. [Troubleshooting](#11-troubleshooting)
 
 ---
 
@@ -89,7 +90,42 @@ The frontend defaults to `http://localhost:8000/api` if this variable is not set
 
 ---
 
-## 4. ML Notebooks — Training Models
+## 4. Supabase (Optional, Recommended)
+
+Use Supabase if you want persistent quote history across restarts, devices, and judge sessions.
+
+### 4.1 Create schema
+
+Open Supabase SQL Editor and run:
+
+```sql
+-- from repository file
+-- supabase/schema.sql
+```
+
+### 4.2 Add env vars in project root `.env`
+
+```env
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+```
+
+Backend also accepts `NEXT_PUBLIC_SUPABASE_URL` as URL fallback for compatibility.
+
+### 4.3 Verify persistence
+
+1. Restart backend.
+2. Process one quote via UI or `/api/process-quote`.
+3. Check `public.quote_runs` table in Supabase.
+
+When configured, these endpoints read persisted records:
+- `/api/quotes`
+- `/api/stats`
+- `/api/regional-stats`
+
+---
+
+## 5. ML Notebooks — Training Models
 
 > **If model artifacts already exist** in `ML/models/` (30+ `.joblib` files), you can **skip this step entirely** and go straight to step 5. The trained models are checked into the repository.
 
@@ -156,7 +192,7 @@ ls ML/models/
 
 ---
 
-## 5. Backend — API Server
+## 6. Backend — API Server
 
 ### 5.1 Create a Python virtual environment (if not done in step 4)
 
@@ -205,7 +241,7 @@ Agent 4: Loaded regional_stats.joblib
 
 ---
 
-## 6. Frontend — Dashboard
+## 7. Frontend — Dashboard
 
 ### 6.1 Install Node.js dependencies
 
@@ -231,7 +267,7 @@ npm start
 
 ---
 
-## 7. Running the Full Stack
+## 8. Running the Full Stack
 
 You need **two terminal windows** running simultaneously:
 
@@ -264,15 +300,15 @@ cd Frontend && npm run dev
 
 ---
 
-## 8. Verifying Everything Works
+## 9. Verifying Everything Works
 
-### 8.1 Health check
+### 9.1 Health check
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-### 8.2 Process a test quote
+### 9.2 Process a test quote
 
 ```bash
 curl -X POST http://localhost:8000/api/process-quote \
@@ -312,13 +348,13 @@ curl -X POST http://localhost:8000/api/process-quote \
 - `decision`: AUTO_APPROVE, AGENT_FOLLOWUP, or ESCALATE_UNDERWRITER
 - `case_summary`: Structured text summary
 
-### 8.3 Load sample quotes from dataset
+### 9.3 Load sample quotes from dataset
 
 ```bash
 curl http://localhost:8000/api/sample-quotes?n=5
 ```
 
-### 8.4 Open the dashboard
+### 9.4 Open the dashboard
 
 Navigate to **http://localhost:3000** in your browser. You should see the landing page with the bento grid overview.
 
@@ -326,7 +362,7 @@ Click on **Quotes** in the sidebar to start processing quotes.
 
 ---
 
-## 9. Demo Walkthrough
+## 10. Demo Walkthrough
 
 ### Quick Demo (2 minutes)
 
@@ -351,7 +387,7 @@ Click on **Quotes** in the sidebar to start processing quotes.
 
 ---
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 ### Backend won't start
 
@@ -385,6 +421,8 @@ Click on **Quotes** in the sidebar to start processing quotes.
 |-------|----------|
 | SSE not working | Ensure backend CORS allows `http://localhost:3000` (configured in `main.py`) |
 | Frontend shows mock data | Backend is not running or not reachable. Check browser console for fetch errors |
+| Supabase table not updating | Ensure schema from `supabase/schema.sql` is applied, `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set, then restart backend |
+| Supabase URL set as `NEXT_PUBLIC_SUPABASE_URL` only | Supported, but backend restart is still required after env changes |
 | Port 8000 already in use | Kill existing process: `lsof -i :8000` then `kill <PID>`, or use `--port 8001` |
 | Port 3000 already in use | Next.js will auto-increment to 3001. Or kill: `lsof -i :3000` |
 

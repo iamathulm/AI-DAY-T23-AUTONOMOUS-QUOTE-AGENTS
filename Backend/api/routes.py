@@ -5,25 +5,32 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from Backend.db.supabase_store import get_quote_store
 from Backend.pipeline.graph import pipeline
 from Backend.pipeline.state import QuoteState
 
 logger = logging.getLogger(__name__)
 
+# Load env vars before Supabase store initialization.
+load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
+
 router = APIRouter()
 
 # In-memory store for processed quotes (for demo — replace with DB in production)
 processed_quotes: list[dict] = []
+quote_store = get_quote_store()
 # Subscribers for SSE
 _sse_subscribers: list[asyncio.Queue] = []
 
@@ -79,14 +86,25 @@ def _serialize_value(v: Any) -> Any:
     """Recursively convert a value to a JSON-safe Python type."""
     if v is None or isinstance(v, (bool, str)):
         return v
+
+    # Normalize NaN/Inf-ish scalar values to JSON null.
+    try:
+        if pd.isna(v):
+            return None
+    except Exception:
+        pass
+
     if isinstance(v, (np.integer,)):
         return int(v)
     if isinstance(v, (np.floating,)):
-        return float(v)
+        fv = float(v)
+        return fv if math.isfinite(fv) else None
     if isinstance(v, (int, float)):
+        if isinstance(v, float) and not math.isfinite(v):
+            return None
         return v
     if isinstance(v, np.ndarray):
-        return v.tolist()
+        return _serialize_value(v.tolist())
     if isinstance(v, dict):
         return {str(k): _serialize_value(vv) for k, vv in v.items()}
     if isinstance(v, (list, tuple)):
@@ -115,6 +133,11 @@ async def process_quote(quote: QuoteInput):
         result = pipeline.invoke(state)
         serialized = _serialize_result(result)
         processed_quotes.append(serialized)
+        if quote_store.enabled:
+            try:
+                quote_store.insert_quote(serialized)
+            except Exception as db_err:
+                logger.warning(f"Supabase insert failed for {quote.Quote_Num}: {db_err}")
         await _notify_subscribers(serialized)
         return serialized
     except Exception as e:
@@ -132,6 +155,11 @@ async def process_batch(batch: BatchInput):
             result = pipeline.invoke(state)
             serialized = _serialize_result(result)
             processed_quotes.append(serialized)
+            if quote_store.enabled:
+                try:
+                    quote_store.insert_quote(serialized)
+                except Exception as db_err:
+                    logger.warning(f"Supabase insert failed for {q.Quote_Num}: {db_err}")
             await _notify_subscribers(serialized)
             results.append(serialized)
         except Exception as e:
@@ -168,6 +196,22 @@ async def get_quotes(
     decision: str | None = Query(None),
 ):
     """Get processed quotes with optional filtering."""
+    if quote_store.enabled:
+        try:
+            total, quotes = quote_store.list_quotes(
+                limit=limit,
+                offset=offset,
+                decision=decision,
+            )
+            return {
+                "total": total,
+                "offset": offset,
+                "limit": limit,
+                "quotes": quotes,
+            }
+        except Exception as e:
+            logger.warning(f"Supabase read failed for /quotes, falling back to memory: {e}")
+
     filtered = processed_quotes
     if decision:
         filtered = [q for q in filtered if q.get("decision") == decision]
@@ -179,7 +223,14 @@ async def get_quotes(
 @router.get("/stats")
 async def get_stats():
     """Aggregate statistics matching the frontend StatsOverview interface."""
-    if not processed_quotes:
+    source_quotes = processed_quotes
+    if quote_store.enabled:
+        try:
+            source_quotes = quote_store.list_quotes_for_analytics(max_rows=5000)
+        except Exception as e:
+            logger.warning(f"Supabase read failed for /stats, falling back to memory: {e}")
+
+    if not source_quotes:
         return {
             "total_quotes": 0,
             "bind_rate": 0,
@@ -191,12 +242,12 @@ async def get_stats():
             "bind_score_histogram": [],
         }
 
-    total = len(processed_quotes)
+    total = len(source_quotes)
     decisions: dict[str, int] = {}
     risk_tiers: dict[str, int] = {}
     bind_scores: list[int] = []
 
-    for q in processed_quotes:
+    for q in source_quotes:
         d = q.get("decision", "UNKNOWN")
         decisions[d] = decisions.get(d, 0) + 1
 
@@ -251,11 +302,18 @@ async def get_stats():
 @router.get("/regional-stats")
 async def get_regional_stats():
     """Per-region performance, bind rates (EA vs IA), and dynamic thresholds."""
-    if not processed_quotes:
+    source_quotes = processed_quotes
+    if quote_store.enabled:
+        try:
+            source_quotes = quote_store.list_quotes_for_analytics(max_rows=5000)
+        except Exception as e:
+            logger.warning(f"Supabase read failed for /regional-stats, falling back to memory: {e}")
+
+    if not source_quotes:
         return {"regions": []}
 
     regions_data: dict[str, dict] = {}
-    for q in processed_quotes:
+    for q in source_quotes:
         reg = q.get("region", "UNKNOWN")
         if reg not in regions_data:
             regions_data[reg] = {"ea_scores": [], "ia_scores": [], "escalated": 0, "total": 0}

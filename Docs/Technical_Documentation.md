@@ -1200,6 +1200,24 @@ threshold = base - adjustment
 | `GET` | `/api/sample-quotes` | Load N random quotes from dataset for demo |
 | `GET` | `/health` | Health check |
 
+### Persistence Mode (In-Memory + Supabase Fallback)
+
+The backend supports two storage modes:
+
+1. **In-memory list** (`processed_quotes`) for local-only runs
+2. **Supabase persistent store** (`public.quote_runs`) when env vars are set
+
+Activation conditions:
+
+- `SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL` fallback)
+- `SUPABASE_SERVICE_ROLE_KEY` (preferred)
+
+Behavior:
+
+- `/api/process-quote` and `/api/process-batch` write to in-memory and Supabase (best-effort)
+- `/api/quotes`, `/api/stats`, `/api/regional-stats` read from Supabase when enabled, else in-memory
+- On Supabase read/write errors, API falls back to in-memory and logs warnings
+
 ### Input Schema
 
 ```json
