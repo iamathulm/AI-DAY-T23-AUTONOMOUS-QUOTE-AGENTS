@@ -12,6 +12,7 @@ langchain-groq>=0.2.0,<1.0
 # ML + data
 numpy>=1.26,<3.0
 pandas>=2.2,<3.0
+pyarrow>=17.0,<20.0
 scikit-learn>=1.5,<2.0
 imbalanced-learn>=0.12,<1.0
 joblib>=1.4,<2.0
